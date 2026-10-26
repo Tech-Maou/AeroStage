@@ -19,7 +19,7 @@ the window manager, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.8)**
+**Available (v1.0)**
 
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
@@ -60,7 +60,7 @@ the window manager, but clicking a stage or a window works just as well.
 
 **Planned**
 
-- Phase 4: app icon, Homebrew release
+- Small fixes from daily use; ideas are welcome as issues.
 
 Details are in the [specification](SPEC.md).
 
@@ -249,7 +249,13 @@ the marked sections yourself.
 scripts/test.sh      # tests (Swift Testing, works without Xcode)
 scripts/bundle.sh    # builds build/AeroStage.app
 scripts/install.sh   # builds, installs to /Applications, restarts
+scripts/release.sh   # builds dist/AeroStage-v<version>.zip for a GitHub release
 ```
+
+`release.sh` prints the zip's SHA256 and updates `Casks/aerostage.rb` in the
+[tap](https://github.com/Tech-Maou/homebrew-tap) if it is checked out next to this repository.
+The app icon is drawn by `swift scripts/make-icons.swift` (it also draws AeroStage WM's icon).
+Release notes are in the [changelog](CHANGELOG.md).
 
 `bundle.sh` signs with the code signing certificate **"AeroStage Dev"** if present, otherwise
 ad-hoc. With a stable certificate the Screen Recording permission survives every rebuild.

@@ -15,6 +15,16 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp "$BIN/AeroStageApp" "$APP/Contents/MacOS/AeroStage"
 cp "$BIN/aerostage" "$APP/Contents/Helpers/aerostage"
 
+# App icon from Resources/Icon/AppIcon.png (drawn by scripts/make-icons.swift).
+ICONSET="$(mktemp -d)/AppIcon.iconset"
+mkdir -p "$ICONSET"
+for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" Resources/Icon/AppIcon.png --out "$ICONSET/icon_${size}x${size}.png" > /dev/null
+    sips -z $((size * 2)) $((size * 2)) Resources/Icon/AppIcon.png --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$(dirname "$ICONSET")"
+
 IDENTITY="${AEROSTAGE_SIGN_IDENTITY:-AeroStage Dev}"
 if ! security find-identity -p codesigning | grep -q "\"$IDENTITY\""; then
     echo "Certificate \"$IDENTITY\" not found, signing ad-hoc" >&2

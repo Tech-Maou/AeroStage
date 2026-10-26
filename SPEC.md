@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 4 started (v0.10)
+Status: **1.0**, phases 0–4 complete
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -237,7 +237,7 @@ and the CLI at `Contents/Helpers/aerostage`.
 | **1 – Core** ✅ | Panel (reserved mode), cards with icons, clicks, `subscribe`, priority list, dynamic numbering, CLI and socket, managed config | Sidebar usable day to day |
 | **2 – Thumbnails** ✅ | ScreenCaptureKit, cache, stacked view, layout view, view switcher | Stage Manager look |
 | **3 – Overlay & mouse** ✅ | Overlay mode with edge trigger, drag & drop, "+" area, context menus | Target mode |
-| **4 – Polish & release** | Complete settings, launch at login, app icon, release script, Homebrew tap | Public release 1.0 |
+| **4 – Polish & release** ✅ | Complete settings, launch at login, app icon, release script, Homebrew tap | Public release 1.0 |
 
 Each phase starts with a short alignment.
 
@@ -420,7 +420,17 @@ Each phase starts with a short alignment.
   check when the CLI is `aerostage-wm`; with plain AeroSpace the check stays as fallback.
   `aerostage status` shows "(window events)" or "(fallback check)".
 
-## 19. Open
+## 19. 1.0 release
+
+- App icons for AeroStage and AeroStage WM drawn by `scripts/make-icons.swift` (no AeroSpace
+  artwork); the bundle scripts turn them into `.icns` with `sips` and `iconutil`.
+- `scripts/release.sh` in both repositories builds the zip for a GitHub release and updates
+  the casks in `Tech-Maou/homebrew-tap` (`aerostage` depends on `aerostage-wm`, which conflicts
+  with `nikitabobko/tap/aerospace`). Casks remove the quarantine attribute because the apps
+  are not notarized.
+- Versions: AeroStage 1.0.0, AeroStage WM 0.21.3-stage.1.
+
+## 20. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.
