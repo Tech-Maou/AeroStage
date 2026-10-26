@@ -86,7 +86,7 @@ final class StageCommands {
     private var status: String {
         let monitor = store.sidebarMonitor?.name ?? "no sidebar monitor"
         let stages = store.stages.map { "\($0.position)=\($0.workspace)" }.joined(separator: " ")
-        return "AeroSpace \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages), \(thumbnailStatus()), \(startupStatus())"
+        return "AeroSpace \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages) (max \(settings.maxStages)), \(thumbnailStatus()), \(startupStatus())"
     }
 }
 

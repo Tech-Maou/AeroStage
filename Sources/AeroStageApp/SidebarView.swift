@@ -63,25 +63,18 @@ struct SidebarView: View {
         settings.cardStyle.usesThumbnails && thumbnails.access == .denied ? .icons : settings.cardStyle
     }
 
+    private func metrics(for size: CGSize) -> CardMetrics {
+        let canvas = thumbnails.canvas.size
+        return CardMetrics(panelSize: size, style: style, titleSize: settings.titleSize, iconScale: settings.iconScale,
+                           canvasAspect: canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9)
+    }
+
     var body: some View {
-        VStack(spacing: 6) {
-            ForEach(store.stages) { stage in
-                StageCard(stage: stage, label: stage.label(for: settings.numbering), side: settings.side,
-                          style: style, thumbnails: thumbnails, actions: actions)
-            }
-            if actions.canAddStage() {
-                NewStageZone(actions: actions)
-            }
-            if !store.isConnected {
-                Label("AeroSpace not reachable", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(Color(nsColor: settings.textColor).opacity(0.8))
-                    .padding(.top, 8)
-            }
-            Spacer(minLength: 0)
+        GeometryReader { geometry in
+            // With many stages all previews shrink evenly, so every card stays visible.
+            let previewHeight = style == .icons ? nil : metrics(for: geometry.size).contentHeight(forCount: store.stages.count)
+            cards(previewHeight: previewHeight)
         }
-        .padding(6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             ZStack {
                 if settings.backgroundBlur { VisualEffectBackground() }
@@ -110,6 +103,27 @@ struct SidebarView: View {
             Button("Quit AeroStage", action: actions.quit)
         }
     }
+
+    private func cards(previewHeight: CGFloat?) -> some View {
+        VStack(spacing: CardMetrics.spacing) {
+            ForEach(store.stages) { stage in
+                StageCard(stage: stage, label: stage.label(for: settings.numbering), side: settings.side,
+                          style: style, previewHeight: previewHeight, thumbnails: thumbnails, actions: actions)
+            }
+            if actions.canAddStage() {
+                NewStageZone(actions: actions)
+            }
+            if !store.isConnected {
+                Label("AeroSpace not reachable", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(Color(nsColor: settings.textColor).opacity(0.8))
+                    .padding(.top, 8)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(CardMetrics.outerPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }
 
 struct StageCard: View {
@@ -119,6 +133,8 @@ struct StageCard: View {
     let label: String
     let side: SidebarSide
     let style: CardStyle
+    /// Height of the preview area; `nil` = natural height (icon view).
+    let previewHeight: CGFloat?
     // Observed so new images redraw the card even when the stage itself is unchanged.
     @ObservedObject var thumbnails: ThumbnailService
     let actions: SidebarActions
@@ -132,7 +148,7 @@ struct StageCard: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 10, style: .continuous) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: CardMetrics.headerGap) {
             header
             Group {
                 switch style {
@@ -146,8 +162,9 @@ struct StageCard: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .frame(height: previewHeight)
         }
-        .padding(6)
+        .padding(CardMetrics.cardPadding)
         .background(shape.fill(fill))
         .overlay(shape.strokeBorder(stage.isFocused ? Color.accentColor : .clear, lineWidth: 2))
         .overlay(shape.strokeBorder(Color.accentColor.opacity(highlighted ? 0.8 : 0), style: StrokeStyle(lineWidth: 2, dash: [5, 3])))
@@ -449,7 +466,7 @@ struct NewStageZone: View {
         Label("New Stage", systemImage: "plus")
             .font(.system(size: 11, weight: .medium, design: .rounded))
             .foregroundStyle(targeted ? Color.accentColor : ink.opacity(0.75))
-            .frame(maxWidth: .infinity, minHeight: targeted ? 56 : 30)
+            .frame(maxWidth: .infinity, minHeight: CardMetrics.newStageHeight)
             .background(shape.fill(ink.opacity(targeted ? 0.14 : hovering ? 0.1 : 0.04)))
             .overlay(shape.strokeBorder(targeted ? Color.accentColor : ink.opacity(0.3),
                                         style: StrokeStyle(lineWidth: 1.5, dash: [5, 3])))

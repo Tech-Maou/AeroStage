@@ -139,6 +139,10 @@ final class SidebarController {
         setShown(false, animated: true)
     }
 
+    func panelSize(on screen: NSScreen) -> CGSize {
+        frame(on: screen).size
+    }
+
     private func frame(on screen: NSScreen) -> NSRect {
         let visible = screen.visibleFrame
         let gap = CGFloat(settings.outerGap)

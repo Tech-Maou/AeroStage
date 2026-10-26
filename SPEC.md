@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 4 started (v0.7)
+Status: **in progress**, phase 4 started (v0.8)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -106,7 +106,7 @@ Setting **"Numbering"**:
 Internal names are deliberately numbers, so AeroSpace keeps working sensibly without
 AeroStage.
 
-Maximum number of stages: 5 (fixed).
+Maximum number of stages: computed per sidebar monitor (see 15), between 3 and 9.
 
 ### 3.6 Keyboard
 
@@ -341,7 +341,21 @@ Each phase starts with a short alignment.
   While a menu is open, new thumbnails are held back: publishing them redraws the sidebar,
   and SwiftUI then rebuilds the open menu, which closed submenus like "View".
 
-## 15. Open
+## 15. v0.8: stage limit per monitor
+
+- `CardMetrics` mirrors the card layout (header from the title size, paddings, preview
+  height per view: stacked `width / 1.25`, layout `width / canvas aspect`, icons two rows).
+- The stage limit is the number of cards that fit when previews shrink to 70 % of their
+  natural height, clamped to 3…9 (`StageCapacity`, shortcuts only go to `mod-9`). It is
+  recomputed when the monitor, sidebar width, view, title or icon size change; the managed
+  shortcuts follow (`mod-1` … `mod-<max>`).
+- The sidebar always gives every card the same preview height: natural when there is room,
+  smaller when there are many stages. The icon view does not shrink.
+- Measured on a 2560×1080 pt display with a 179 pt sidebar: 7 stacked, 7 icons, 9 layout.
+- More open stages than the limit (e.g. after switching to a smaller display) are kept;
+  only new stages cannot be added until there is room again.
+
+## 16. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

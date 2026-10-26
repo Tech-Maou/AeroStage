@@ -13,7 +13,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.7)**
+**Available (v0.8)**
 
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
@@ -133,15 +133,19 @@ On first launch AeroStage picks the preset that matches your current keyboard la
 
 | Shortcut | Effect |
 |---|---|
-| `mod-1` … `5` | Switch to the stage at position n. Count + 1 opens a new stage |
-| `mod-shift-1` … `5` | Move the focused window to the stage at position n |
+| `mod-1` … `9` | Switch to the stage at position n. Count + 1 opens a new stage |
+| `mod-shift-1` … `9` | Move the focused window to the stage at position n |
 | `mod-n` | Move the window to a new stage and follow it |
 | `alt-tab` / `alt-shift-tab` | Next / previous stage |
 | `mod-s` | Show or hide the sidebar (overlay: show until a stage is chosen) |
 
 All other AeroSpace default shortcuts are kept with the same modifier: `mod-h/j/k/l` focus,
 `mod-shift-h/j/k/l` move, `mod-slash`/`mod-comma` layouts, `mod-minus`/`mod-equal` resize,
-`mod-shift-semicolon` service mode. Up to 5 stages are supported.
+`mod-shift-semicolon` service mode.
+
+The number of stages adapts to the sidebar monitor: as many as fit with previews at 70 % or
+more of their full size, between 3 and 9 (e.g. 7 stacked or 9 in layout view on a 2560×1080
+display). With many stages all previews shrink evenly, so every stage stays visible.
 
 ### Command line
 

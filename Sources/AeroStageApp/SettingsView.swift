@@ -155,7 +155,8 @@ struct SettingsView: View {
             } header: {
                 Text("Stages")
             } footer: {
-                Text("Up to \(settings.maxStages) stages.").foregroundStyle(.secondary)
+                Text("Up to \(settings.maxStages) stages on this monitor. The number follows the monitor's height, the sidebar width and the view, between 3 and 9.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

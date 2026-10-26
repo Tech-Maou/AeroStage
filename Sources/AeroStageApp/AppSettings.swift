@@ -46,8 +46,8 @@ final class AppSettings: ObservableObject {
     /// Monitor names in descending priority; `MonitorResolver.builtinToken` stands for the built-in display.
     @Published var monitorPriority: [String] { didSet { defaults.set(monitorPriority, forKey: "monitorPriority") } }
     @Published var numbering: NumberingMode { didSet { defaults.set(numbering.rawValue, forKey: "numbering") } }
-    /// Fixed; more stages than this are not needed in practice.
-    let maxStages = 5
+    /// How many stages fit on the current sidebar monitor; computed, not stored.
+    @Published var maxStages = 5
     @Published var modifier: String { didSet { defaults.set(modifier, forKey: "modifier") } }
     @Published var manageConfig: Bool { didSet { defaults.set(manageConfig, forKey: "manageConfig") } }
     @Published var innerGap: Int { didSet { defaults.set(innerGap, forKey: "innerGap") } }

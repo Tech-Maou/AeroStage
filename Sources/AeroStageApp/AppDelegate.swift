@@ -211,6 +211,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 store.resolveSidebarTarget()
                 store.restage()
                 sidebar.layout(on: store.sidebarScreen)
+                updateStageCapacity()
                 applyConfig()
                 updateThumbnails()
             }
@@ -224,7 +225,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         store.$sidebarScreen
             .removeDuplicates()
-            .sink { [unowned self] screen in sidebar.layout(on: screen) }
+            .sink { [unowned self] screen in
+                sidebar.layout(on: screen)
+                DispatchQueue.main.async { self.updateStageCapacity() }
+            }
             .store(in: &subscriptions)
 
         store.$sidebarMonitor
@@ -253,6 +257,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         thumbnails.canvas = windowArea(on: screen)
         let stages = store.stages.sorted { $0.isFocused && !$1.isFocused }
         thumbnails.update(windowIDs: stages.flatMap { $0.windows.map(\.windowId) })
+    }
+
+    /// The stage limit follows the sidebar monitor: as many cards as fit at ≥ 70 % preview size.
+    private func updateStageCapacity() {
+        guard let screen = store.sidebarScreen else { return }
+        let style = settings.cardStyle.usesThumbnails && thumbnails.access == .denied ? .icons : settings.cardStyle
+        let area = windowArea(on: screen)
+        let metrics = CardMetrics(panelSize: sidebar.panelSize(on: screen), style: style,
+                                  titleSize: settings.titleSize, iconScale: settings.iconScale,
+                                  canvasAspect: area.height > 0 ? area.width / area.height : 16 / 9)
+        if metrics.capacity != settings.maxStages {
+            settings.maxStages = metrics.capacity
+        }
     }
 
     /// Area in which AeroSpace lays out windows: the monitor in CG coordinates minus the sidebar.

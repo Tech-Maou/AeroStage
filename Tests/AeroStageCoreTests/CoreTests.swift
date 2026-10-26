@@ -136,6 +136,28 @@ import Testing
     }
 }
 
+@Suite struct StageCapacityTests {
+    @Test func countsCardsThatFit() {
+        // 5 cards of 100 + 4 gaps of 10 = 540
+        #expect(StageCapacity.count(availableHeight: 540, cardChrome: 40, minContentHeight: 60, spacing: 10) == 5)
+        #expect(StageCapacity.count(availableHeight: 539, cardChrome: 40, minContentHeight: 60, spacing: 10) == 4)
+    }
+
+    @Test func clampsToShortcutRange() {
+        #expect(StageCapacity.count(availableHeight: 100, cardChrome: 40, minContentHeight: 60, spacing: 10) == 3)
+        #expect(StageCapacity.count(availableHeight: 10_000, cardChrome: 40, minContentHeight: 60, spacing: 10) == 9)
+    }
+
+    @Test func previewsShrinkOnlyWhenNeeded() {
+        // Plenty of room: natural height.
+        #expect(StageCapacity.contentHeight(availableHeight: 1000, count: 2, cardChrome: 40, naturalContentHeight: 120, spacing: 10) == 120)
+        // 6 cards in 540: (540 - 50) / 6 - 40 = 41.67
+        let shrunk = StageCapacity.contentHeight(availableHeight: 540, count: 6, cardChrome: 40, naturalContentHeight: 120, spacing: 10)
+        #expect(abs(shrunk - 41.666) < 0.01)
+        #expect(StageCapacity.contentHeight(availableHeight: 10, count: 6, cardChrome: 40, naturalContentHeight: 120, spacing: 10) == 0)
+    }
+}
+
 @Suite struct KeyboardPresetTests {
     @Test func presetsMapToModifiers() {
         #expect(KeyboardPreset.us.modifier == "alt")

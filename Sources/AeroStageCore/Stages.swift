@@ -124,3 +124,28 @@ public struct StageOrder: Equatable, Sendable {
         }
     }
 }
+
+/// How many stage cards fit into the sidebar, and how tall their previews may be.
+public enum StageCapacity {
+    /// At least 3 stages; at most 9 because shortcuts only go up to `mod-9`.
+    public static let limits = 3...9
+
+    /// Number of cards that fit when previews may shrink down to `minContentHeight`.
+    /// - Parameters:
+    ///   - availableHeight: height for the cards alone (without padding and "New Stage").
+    ///   - cardChrome: fixed part of a card (header, gaps, padding).
+    public static func count(availableHeight: Double, cardChrome: Double, minContentHeight: Double, spacing: Double) -> Int {
+        let perCard = cardChrome + minContentHeight + spacing
+        guard perCard > 0 else { return limits.lowerBound }
+        let fitting = Int(((availableHeight + spacing) / perCard).rounded(.down))
+        return min(max(fitting, limits.lowerBound), limits.upperBound)
+    }
+
+    /// Preview height so that `count` cards fit, never larger than the natural height.
+    public static func contentHeight(availableHeight: Double, count: Int, cardChrome: Double, naturalContentHeight: Double, spacing: Double) -> Double {
+        guard count > 0 else { return naturalContentHeight }
+        let n = Double(count)
+        let perCard = (availableHeight - (n - 1) * spacing) / n - cardChrome
+        return max(0, min(naturalContentHeight, perCard))
+    }
+}
