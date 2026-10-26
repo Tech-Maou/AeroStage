@@ -82,6 +82,8 @@ public struct AeroEvent: Decodable, Sendable, Equatable {
         case modeChanged = "mode-changed"
         case windowDetected = "window-detected"
         case bindingTriggered = "binding-triggered"
+        /// AeroStage WM only: the windows of a workspace changed (opened, closed, minimized, moved).
+        case workspaceWindowsChanged = "workspace-windows-changed"
     }
 
     public let event: String
@@ -89,12 +91,13 @@ public struct AeroEvent: Decodable, Sendable, Equatable {
     public let prevWorkspace: String?
     public let windowId: Int?
     public let monitorId: Int?
+    public let windowIds: [Int]?
 
     public var kind: Kind? { Kind(rawValue: event) }
 
     enum CodingKeys: String, CodingKey {
         case event = "_event"
-        case workspace, prevWorkspace, windowId, monitorId
+        case workspace, prevWorkspace, windowId, monitorId, windowIds
     }
 
     public static func decode(line: Data) -> AeroEvent? {
@@ -112,6 +115,11 @@ public enum AeroSpacePaths {
         "/opt/homebrew/bin/aerospace",
         "/usr/local/bin/aerospace",
     ]
+
+    /// AeroStage WM reports closed, minimized and moved windows itself (`workspace-windows-changed`).
+    public static func reportsWindowChanges(_ executable: String) -> Bool {
+        (executable as NSString).lastPathComponent == "aerostage-wm"
+    }
 
     public static func locate(preferred: String? = nil) -> String? {
         let fm = FileManager.default

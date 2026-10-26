@@ -40,8 +40,8 @@ final class StateStore: ObservableObject {
         startVisibilityWatch()
     }
 
-    /// AeroSpace sends no event when a window is minimized, and closing a window only shows up
-    /// with the next focus change. Twice a second, ask the window server (local, no AeroSpace
+    /// Fallback for plain AeroSpace: it sends no event when a window is minimized, and closing a
+    /// window only shows up with the next focus change. Twice a second, ask the window server (local, no AeroSpace
     /// call) whether the visible stage's windows are still on screen; if one vanished, refresh.
     private func startVisibilityWatch() {
         visibilityTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -50,7 +50,8 @@ final class StateStore: ObservableObject {
     }
 
     private func checkVisibleWindows() {
-        guard let active = activeWorkspace else { return }
+        // Not needed with AeroStage WM: its workspace-windows-changed event covers these cases.
+        guard !AeroSpacePaths.reportsWindowChanges(client.executable), let active = activeWorkspace else { return }
         let ids = Set(windows.filter { $0.workspace == active }.map(\.windowId))
         guard !ids.isEmpty else { return }
         let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []

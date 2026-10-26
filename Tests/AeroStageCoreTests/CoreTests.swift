@@ -184,6 +184,14 @@ import Testing
         #expect(AeroEvent.decode(line: Data("not json".utf8)) == nil)
     }
 
+    @Test func decodesWorkspaceWindowsChanged() throws {
+        let event = try #require(AeroEvent.decode(line: Data(#"{"_event":"workspace-windows-changed","windowIds":[12,34],"workspace":"2"}"#.utf8)))
+        #expect(event.kind == .workspaceWindowsChanged)
+        #expect(event.windowIds == [12, 34])
+        #expect(AeroSpacePaths.reportsWindowChanges("/x/aerostage-wm"))
+        #expect(!AeroSpacePaths.reportsWindowChanges("/opt/homebrew/bin/aerospace"))
+    }
+
     @Test func decodesWindowList() throws {
         let json = """
         [{"app-bundle-id":"org.mozilla.firefox","app-name":"Firefox","monitor-id":1,"window-id":15698,"window-title":"Start","workspace":"1"}]

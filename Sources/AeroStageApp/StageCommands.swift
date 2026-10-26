@@ -88,6 +88,7 @@ final class StageCommands {
         let monitor = store.sidebarMonitor?.name ?? "no sidebar monitor"
         let stages = store.stages.map { "\($0.position)=\($0.workspace)" }.joined(separator: " ")
         let cli = (store.client.executable as NSString).lastPathComponent
+            + (AeroSpacePaths.reportsWindowChanges(store.client.executable) ? " (window events)" : " (fallback check)")
         return "\(cli) \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages) (max \(settings.maxStages)), \(thumbnailStatus()), \(startupStatus())"
     }
 }
