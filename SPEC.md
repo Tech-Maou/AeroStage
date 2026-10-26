@@ -1,0 +1,284 @@
+# AeroStage – Specification
+
+Status: **in progress**, phase 2 complete (v0.2)
+
+AeroStage is a native macOS companion app for the tiling window manager
+[AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
+Stage Manager: every AeroSpace workspace appears as a "stage" with window thumbnails at the
+edge of the screen. It is driven primarily by keyboard through AeroSpace; the mouse works
+just as well.
+
+---
+
+## 1. Principles
+
+- **Separate companion app, not a fork.** AeroSpace stays unmodified and is installed
+  separately. All communication goes through the `aerospace` CLI.
+- **Stay close to AeroSpace.** AeroSpace's default shortcuts and behavior are kept. If
+  AeroStage is not running, AeroSpace keeps working normally.
+- **No state polling.** Updates come from the `aerospace subscribe` event stream.
+- **Open source** on GitHub under the MIT license, distributed through a Homebrew tap.
+
+## 2. Terms
+
+| Term | Meaning |
+|---|---|
+| Stage | A non-empty AeroSpace workspace, shown as a card in the sidebar |
+| Position | Number shown for a stage (1, 2, 3 …), gapless and ascending |
+| Internal name | The real AeroSpace workspace name (also a number, e.g. `3`) |
+| Sidebar monitor | The monitor the sidebar is currently shown on |
+
+## 3. Features
+
+### 3.1 Display modes
+
+1. **Reserved:** the sidebar is always visible. AeroSpace reserves its space via
+   `gaps.outer.left` or `gaps.outer.right`, on the sidebar monitor only. Windows never
+   cover the sidebar.
+2. **Overlay (target mode, like Stage Manager):** the sidebar is hidden and no gaps are
+   reserved.
+   - Shown when the mouse touches the screen edge (invisible 1–2 px strip) or via shortcut
+     (`aerostage toggle`).
+   - The sidebar floats above the windows.
+   - Hidden when the mouse leaves it, after clicking a card or thumbnail, or via shortcut.
+
+Side: left or right, **right by default**.
+
+### 3.2 Monitor priority list
+
+- The settings contain an ordered list of monitors, e.g. `DELL U4025QW → Built-in Display`.
+- The sidebar appears on the highest-ranked connected monitor of the list, never on any
+  other monitor (e.g. a TV).
+- It shows the stages that live on the sidebar monitor. With only the built-in display
+  connected, that is every stage.
+- Monitors are detected automatically.
+- When monitors are connected or disconnected, the sidebar follows. In reserved mode the
+  gaps are rewritten.
+- Workspaces are never lost in the process.
+
+### 3.3 Cards
+
+- One card per stage, in a fixed order by position (1 at the top).
+- Each card has a header with the position and the app names, e.g. **"1.** Firefox, Mail, Code".
+- Three views, switchable:
+  - **Stacked Thumbnails (default):** up to 3 window thumbnails stacked like in Stage
+    Manager, the layers behind offset towards the screen center and upwards; "+n" for
+    more windows. The most recently focused window is in front.
+  - **Thumbnails in Layout:** the windows of the stage to scale at their actual position,
+    like a miniature screen.
+  - **App Icons:** app icons of the windows in a grid.
+- The active stage is highlighted.
+- Light and dark mode, background in system material (vibrancy).
+- Tooltip on hover: app name and window title.
+- Width in **% of the monitor width**, clamped by minimum and maximum in points, so it fits
+  on a 5K ultrawide as well as on a laptop display.
+
+### 3.4 Interaction
+
+| Action | Effect |
+|---|---|
+| Click a card | Switch to that stage |
+| Click a thumbnail/icon | Focus exactly that window (`aerospace focus --window-id`) |
+| Drag a thumbnail onto another card | Move the window to that stage |
+| Drag a thumbnail onto the "+" area | New stage with that window |
+| Right-click a card | Close stage (all windows), switch to stage |
+| Right-click a thumbnail | Bring window to the current stage, close window |
+
+The panel never takes keyboard focus (non-activating `NSPanel`) and is visible on all Spaces.
+
+### 3.5 Numbering
+
+Setting **"Numbering"**:
+
+- **Dynamic (default, Stage Manager behavior):**
+  - The position is shown, not the name.
+  - When a stage becomes empty it disappears and the following ones move up (1, 3 → 1, 2).
+  - New stages are appended at the end.
+  - AeroStage picks the internal name automatically: the lowest free number. The user
+    never sees it.
+  - AeroStage remembers the order itself; after a restart it is sorted by name.
+- **Fixed (classic AeroSpace):**
+  - The real name is shown.
+  - Gaps remain (1, 3).
+  - Shortcuts go straight to AeroSpace.
+
+Internal names are deliberately numbers, so AeroSpace keeps working sensibly without
+AeroStage.
+
+Maximum number of stages: 5 / 7 / 9, default 5.
+
+### 3.6 Keyboard
+
+Based on AeroSpace's default config (focus, move, layouts, resize, service mode), but with
+`ctrl-alt` instead of `alt`, because on many European layouts `alt`+key types characters
+(German: `@`, `[`, `]`, `{`, `}`, `|`, `~`). The modifier is configurable. Added or replaced:
+
+| Shortcut | Command | Effect |
+|---|---|---|
+| `ctrl-alt-1` … `9` | `aerostage focus N` | Switch to position N |
+| `ctrl-alt-shift-1` … `9` | `aerostage move N` | Move the focused window to position N (N = count+1 → new stage) |
+| `ctrl-alt-n` | `aerostage new` | Move the focused window to a new stage and follow it |
+| `alt-tab` | `aerostage next` | Next stage (wraps around) |
+| `alt-shift-tab` | `aerostage prev` | Previous stage |
+| `ctrl-alt-s` | `aerostage toggle` | Show/hide the sidebar |
+
+In fixed mode AeroStage writes the plain AeroSpace commands instead (`workspace N`,
+`move-node-to-workspace N`).
+
+### 3.7 Settings
+
+A proper settings window, reachable via `aerostage settings` and the sidebar's context menu:
+
+- **Appearance:** side, width in %, min/max, view, thumbnail refresh interval
+- **Mode:** reserved or overlay, edge trigger on/off, delay (phase 3)
+- **Monitors:** priority list, detected monitors can be added
+- **Stages:** numbering (dynamic/fixed), maximum
+- **AeroSpace:** modifier, gaps, path to the CLI, managed config on/off, status
+- **General:** launch at login (phase 4)
+
+Stored in `UserDefaults` (`io.github.tech-maou.AeroStage`).
+
+## 4. Architecture
+
+```
+                ┌──────────────────────── AeroStage.app ─────────────────────────┐
+aerospace       │  EventStream ──► StateStore ──────────────────► SwiftUI views  │
+subscribe ─────►│  (JSON lines)    (stages, windows, order,       (SidebarView)  │
+                │                   active stage, monitor)              ▲         │
+aerospace ◄─────│  AeroSpaceClient ◄─┘                                  │         │
+list-* / focus  │  (CLI calls)          ThumbnailService ───────────────┘         │
+                │                       (ScreenCaptureKit, images + positions)    │
+NSWorkspace ───►│  AppDelegate: app terminated, screens changed → refresh        │
+NSScreen   ────►│  MonitorResolver ──► SidebarController (NSPanel)               │
+                │  ConfigManager ──► ~/.aerospace.toml (managed sections)        │
+aerostage CLI ─►│  CommandServer (Unix socket) ──► StageCommands                 │
+                └─────────────────────────────────────────────────────────────────┘
+```
+
+| Component | Responsibility |
+|---|---|
+| `AeroSpaceClient` | Runs `aerospace` commands (`list-windows --all --json`, `list-monitors --json`, `list-workspaces --json`, `focus`, `workspace`, `move-node-to-workspace`, `reload-config`) and decodes the JSON |
+| `EventStream` | Keeps `aerospace subscribe --all` running as a child process, restarts it if it exits |
+| `StateStore` | Single source of truth: stages, windows, order, active stage, sidebar monitor. Refreshes via the CLI after events (debounced) |
+| `ThumbnailService` | Captures the sidebar's windows via ScreenCaptureKit, active stage first, then on an interval. Remembers the last visible position of every window for the layout view |
+| `MonitorResolver` | Picks the sidebar monitor from the priority list and maps it to the AeroSpace monitor |
+| `SidebarController` | Non-activating `NSPanel`, positioning, show/hide |
+| `ConfigManager` | Writes gaps and shortcuts into the marked sections of `~/.aerospace.toml`, then runs `aerospace reload-config` |
+| `CommandServer` / `StageCommands` | Unix domain socket; receives commands from the CLI and translates positions into workspace names |
+| `aerostage` (CLI) | Tiny binary for shortcuts: `focus N`, `move N`, `new`, `next`, `prev`, `toggle`, `settings`, `reload`, `status`, `quit`. Falls back to plain `aerospace` commands when the app is not running |
+
+## 5. Project layout
+
+Swift Package Manager, builds with `swift build`, no Xcode project required. Swift 6,
+targets macOS 14+ (for `SCScreenshotManager`).
+
+```
+AeroStage/
+├── Package.swift
+├── Sources/
+│   ├── AeroStageCore/        # models, JSON types, IPC, stage order, managed config, template
+│   ├── AeroStageApp/         # app: panel, views, client, event stream, state, settings
+│   └── aerostage/            # CLI
+├── Tests/AeroStageCoreTests/ # Swift Testing
+├── Resources/Info.plist      # LSUIElement, bundle ID io.github.tech-maou.AeroStage
+├── Prototypes/ThumbnailProbe # phase 0 prototype for ScreenCaptureKit
+├── scripts/
+│   ├── test.sh               # swift test, also without Xcode (Command Line Tools only)
+│   ├── bundle.sh             # builds build/AeroStage.app and signs it
+│   ├── install.sh            # bundle.sh + install to /Applications + restart
+│   └── release.sh            # (phase 4) zip + SHA256 for GitHub release / cask
+├── LICENSE                   # MIT
+├── THIRD-PARTY-NOTICES.md
+└── README.md
+```
+
+The app binary is called `AeroStageApp` in the package because `AeroStage` and `aerostage`
+collide on case-insensitive APFS. In the bundle the app lives at `Contents/MacOS/AeroStage`
+and the CLI at `Contents/Helpers/aerostage`.
+
+## 6. Permissions & signing
+
+- **Screen Recording:** required for thumbnails. Without it the sidebar falls back to icons.
+- **Accessibility:** not required for AeroStage (only AeroSpace itself needs it).
+- **Signing:** no paid Apple developer account.
+  - Local builds are signed with a stable self-signed certificate so the Screen Recording
+    permission survives rebuilds.
+  - Releases are signed ad-hoc; users may have to grant the permission again after updates.
+- **Launch at login:** `SMAppService.mainApp` (phase 4).
+
+## 7. Distribution
+
+- GitHub repo `Tech-Maou/AeroStage`, MIT license.
+- The README names AeroSpace as a requirement and links to it.
+- GitHub releases with a `.zip`.
+- Homebrew tap `Tech-Maou/homebrew-tap` with a cask:
+  - modeled after `nikitabobko/tap/aerospace`
+  - `depends_on cask: "nikitabobko/tap/aerospace"`
+  - removes the quarantine attribute
+
+## 8. Phases
+
+| Phase | Scope | Result |
+|---|---|---|
+| **0 – Setup** ✅ | Install and configure AeroSpace, toolchain, repo. **Prototype checks:** thumbnails of hidden windows, monitor disconnect, `subscribe` events | Running AeroSpace, risks cleared |
+| **1 – Core** ✅ | Panel (reserved mode), cards with icons, clicks, `subscribe`, priority list, dynamic numbering, CLI and socket, managed config | Sidebar usable day to day |
+| **2 – Thumbnails** ✅ | ScreenCaptureKit, cache, stacked view, layout view, view switcher | Stage Manager look |
+| **3 – Overlay & mouse** | Overlay mode with edge trigger, drag & drop, "+" area, context menus | Target mode |
+| **4 – Polish & release** | Complete settings, launch at login, app icon, release script, Homebrew tap | Public release 1.0 |
+
+Each phase starts with a short alignment.
+
+## 9. Findings phase 0 (AeroSpace 0.21.3, macOS 26)
+
+- **`aerospace subscribe --all`** sends the current state on connect, then
+  `focus-changed`, `focused-workspace-changed`, `focused-monitor-changed`,
+  `window-detected`, `mode-changed`, `binding-triggered` as JSON lines.
+  - There is no event for "window closed" or "window moved"; both only show up through
+    the following `focus-changed`.
+  - → `StateStore` refreshes via `list-windows --all --json` after every event (debounced)
+    and additionally when an app terminates (`NSWorkspace`).
+- **Empty workspaces** disappear after leaving them (with `persistent-workspaces = []`).
+  This happens with a slight delay, so the window list is the source of truth.
+- **Activating** an app on another workspace via AppleScript/`open` makes AeroSpace jump
+  there. If that workspace becomes empty when the app quits, you stay on it.
+- **Hidden windows** are moved to the bottom-right corner by AeroSpace (e.g. origin
+  2559,1048) and still count as `onScreen` for macOS.
+- **ScreenCaptureKit captures hidden windows live:** full size, about 65–80 ms per window
+  at 2× resolution; content still current after 60 s hidden (tested with a terminal clock).
+- **Prerequisite:** `NSApplication.shared` must be initialized before capturing, otherwise
+  it crashes (`CGS_REQUIRE_INIT`). The real app does this anyway.
+- **Signing:** ad-hoc signed rebuilds lose the Screen Recording permission. Removing and
+  re-adding it did not help, only `tccutil reset ScreenCapture <bundle-id>` plus a new
+  prompt. → A stable self-signed code signing certificate for development.
+
+## 10. Findings phase 2 (v0.2)
+
+- `ThumbnailService` captures the sidebar's windows via `SCScreenshotManager` at 2.5× the
+  sidebar width: active stage first, again 0.4 s after the window list changes (AeroSpace
+  re-lays out windows), then live at the configured interval (default 3 s, "only on
+  changes" possible). Capturing only runs while the sidebar is visible and a thumbnail
+  view is selected.
+- Videos in browsers on hidden stages keep updating in the thumbnails.
+- Cards observe the thumbnail service directly; otherwise SwiftUI would not redraw them
+  when only the images change.
+- The layout view uses each window's last position while it was visible; AeroSpace parks
+  hidden windows off screen. Windows never seen visible are laid out side by side.
+- Without permission the sidebar falls back to icons and retries every 10 s.
+- **Permission and signing:** with the "AeroStage Dev" certificate the permission survives
+  rebuilds (verified with a changed CDHash). After changing the bundle ID at the same path
+  there were duplicate TCC entries; `tccutil reset ScreenCapture
+  io.github.tech-maou.AeroStage` plus a new prompt fixed it.
+- **Minimum window widths:** some apps cannot shrink below ~600 pt (e.g. Firefox). With four
+  windows next to a reserved sidebar on a 2560 pt wide screen AeroSpace assigns ~581 pt
+  each, so those windows overlap their neighbor slightly. Overlay mode (phase 3) frees the
+  reserved space.
+
+## 11. Open
+
+1. How exactly does AeroSpace redistribute workspaces when the external monitor is
+   disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.
+   Test postponed. Decided: with the laptop open and the external monitor connected, the
+   sidebar stays on the external monitor, per the priority list.
+2. TOML allows each table only once (`[gaps]`, `[mode.main.binding]`). That is why
+   AeroStage creates `.aerospace.toml` from its template on first launch and manages the
+   affected parts between markers. The user's own additions outside the markers are kept.

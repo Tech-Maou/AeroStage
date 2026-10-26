@@ -1,0 +1,112 @@
+import AeroStageCore
+import AppKit
+
+/// Single source of truth for the sidebar: stages, active stage, sidebar monitor.
+///
+/// Events trigger a debounced refresh via the CLI. A workspace change is shown
+/// optimistically right away so the highlight moves without delay.
+@MainActor
+final class StateStore: ObservableObject {
+    @Published private(set) var stages: [Stage] = []
+    @Published private(set) var isConnected = false
+    @Published private(set) var sidebarScreen: NSScreen?
+    @Published private(set) var sidebarMonitor: AeroMonitor?
+
+    /// All workspace names on all monitors (for picking new names).
+    private(set) var allWorkspaces: Set<String> = []
+    private(set) var order: StageOrder
+    /// The workspace visible on the sidebar monitor.
+    private(set) var activeWorkspace: String?
+
+    var client: AeroSpaceClient
+    private let settings: AppSettings
+    private var windows: [AeroWindow] = []
+    private var monitors: [AeroMonitor] = []
+    private var visible: [AeroWorkspaceRef] = []
+    /// Most recently focused window per workspace; shown in front of the stack.
+    private var lastFocused: [String: Int] = [:]
+    private var pendingRefresh: Task<Void, Never>?
+
+    init(client: AeroSpaceClient, settings: AppSettings) {
+        self.client = client
+        self.settings = settings
+        self.order = StageOrder(names: settings.stageOrder)
+    }
+
+    func handle(_ event: AeroEvent) {
+        if event.kind == .focusChanged, let workspace = event.workspace, let windowId = event.windowId {
+            lastFocused[workspace] = windowId
+        }
+        if event.kind == .focusedWorkspaceChanged, let workspace = event.workspace,
+           order.names.contains(workspace) {
+            activeWorkspace = workspace
+            restage()
+        }
+        scheduleRefresh()
+    }
+
+    func scheduleRefresh(after delay: Duration = .milliseconds(25)) {
+        pendingRefresh?.cancel()
+        pendingRefresh = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
+    }
+
+    func refresh() async {
+        do {
+            async let windows = client.windows()
+            async let monitors = client.monitors()
+            async let visible = client.visibleWorkspaces()
+            let result = try await (windows, monitors, visible)
+            guard !Task.isCancelled else { return }
+            (self.windows, self.monitors, self.visible) = result
+            isConnected = true
+        } catch {
+            guard !Task.isCancelled else { return }
+            isConnected = false
+            NSLog("AeroStage: refresh failed: \(error)")
+        }
+        allWorkspaces = Set(windows.map(\.workspace)).union(visible.map(\.workspace))
+        resolveSidebarTarget()
+        activeWorkspace = visible.first { $0.monitorId == sidebarMonitor?.monitorId }?.workspace
+        restage()
+    }
+
+    /// After the priority list or the monitor setup changed.
+    func resolveSidebarTarget() {
+        let screen = MonitorResolver.resolveScreen(priority: settings.monitorPriority)
+        let monitor = screen.flatMap { MonitorResolver.aeroMonitor(for: $0, in: monitors) }
+        if screen != sidebarScreen { sidebarScreen = screen }
+        if monitor != sidebarMonitor { sidebarMonitor = monitor }
+    }
+
+    /// Rebuilds the stage list from the last refresh.
+    func restage() {
+        guard let monitorId = sidebarMonitor?.monitorId else {
+            if !stages.isEmpty { stages = [] }
+            return
+        }
+        let byWorkspace = Dictionary(grouping: windows.filter { $0.monitorId == monitorId }, by: \.workspace)
+        var present = Set(byWorkspace.keys)
+        if let activeWorkspace { present.insert(activeWorkspace) }
+
+        order.reconcile(with: present, mode: settings.numbering)
+        if settings.numbering == .dynamic { settings.stageOrder = order.names }
+
+        let newStages = order.names.enumerated().map { index, name in
+            Stage(workspace: name, position: index + 1, windows: frontFirst(byWorkspace[name] ?? [], in: name), isFocused: name == activeWorkspace)
+        }
+        if newStages != stages { stages = newStages }
+    }
+
+    private func frontFirst(_ windows: [AeroWindow], in workspace: String) -> [AeroWindow] {
+        guard let id = lastFocused[workspace], let index = windows.firstIndex(where: { $0.windowId == id }), index > 0 else {
+            return windows
+        }
+        var result = windows
+        result.insert(result.remove(at: index), at: 0)
+        return result
+    }
+}

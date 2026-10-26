@@ -1,0 +1,85 @@
+import AeroStageCore
+import AppKit
+
+enum CardStyle: String, CaseIterable {
+    /// Thumbnails stacked like in Stage Manager.
+    case thumbnails
+    /// Thumbnails in their actual arrangement on screen.
+    case layout
+    case icons
+
+    var title: String {
+        switch self {
+        case .thumbnails: "Stacked Thumbnails"
+        case .layout: "Thumbnails in Layout"
+        case .icons: "App-Icons"
+        }
+    }
+
+    var usesThumbnails: Bool { self != .icons }
+}
+
+/// All settings, persisted in `UserDefaults`.
+@MainActor
+final class AppSettings: ObservableObject {
+    private let defaults = UserDefaults.standard
+
+    @Published var side: SidebarSide { didSet { defaults.set(side.rawValue, forKey: "side") } }
+    /// Width in percent of the monitor width, clamped by `minWidth`/`maxWidth` (points).
+    @Published var widthPercent: Double { didSet { defaults.set(widthPercent, forKey: "widthPercent") } }
+    @Published var minWidth: Double { didSet { defaults.set(minWidth, forKey: "minWidth") } }
+    @Published var maxWidth: Double { didSet { defaults.set(maxWidth, forKey: "maxWidth") } }
+    /// Monitor names in descending priority; `MonitorResolver.builtinToken` stands for the built-in display.
+    @Published var monitorPriority: [String] { didSet { defaults.set(monitorPriority, forKey: "monitorPriority") } }
+    @Published var numbering: NumberingMode { didSet { defaults.set(numbering.rawValue, forKey: "numbering") } }
+    @Published var maxStages: Int { didSet { defaults.set(maxStages, forKey: "maxStages") } }
+    @Published var modifier: String { didSet { defaults.set(modifier, forKey: "modifier") } }
+    @Published var manageConfig: Bool { didSet { defaults.set(manageConfig, forKey: "manageConfig") } }
+    @Published var innerGap: Int { didSet { defaults.set(innerGap, forKey: "innerGap") } }
+    @Published var outerGap: Int { didSet { defaults.set(outerGap, forKey: "outerGap") } }
+    /// Empty = locate automatically.
+    @Published var aerospacePath: String { didSet { defaults.set(aerospacePath, forKey: "aerospacePath") } }
+    @Published var sidebarVisible: Bool { didSet { defaults.set(sidebarVisible, forKey: "sidebarVisible") } }
+    @Published var cardStyle: CardStyle { didSet { defaults.set(cardStyle.rawValue, forKey: "cardStyle") } }
+    /// Seconds between live thumbnail refreshes; 0 = only on changes.
+    @Published var thumbnailInterval: Double { didSet { defaults.set(thumbnailInterval, forKey: "thumbnailInterval") } }
+
+    static let modifiers = ["ctrl-alt", "alt", "cmd-alt", "ctrl-alt-cmd", "ctrl-alt-shift"]
+    static let stageLimits = [5, 7, 9]
+    static let thumbnailIntervals: [Double] = [1, 2, 3, 5, 10, 0]
+
+    init() {
+        let d = defaults
+        side = SidebarSide(rawValue: d.string(forKey: "side") ?? "") ?? .right
+        widthPercent = d.object(forKey: "widthPercent") as? Double ?? 7
+        minWidth = d.object(forKey: "minWidth") as? Double ?? 120
+        maxWidth = d.object(forKey: "maxWidth") as? Double ?? 260
+        monitorPriority = d.stringArray(forKey: "monitorPriority") ?? []
+        numbering = NumberingMode(rawValue: d.string(forKey: "numbering") ?? "") ?? .dynamic
+        maxStages = d.object(forKey: "maxStages") as? Int ?? 5
+        modifier = d.string(forKey: "modifier") ?? "ctrl-alt"
+        manageConfig = d.object(forKey: "manageConfig") as? Bool ?? true
+        innerGap = d.object(forKey: "innerGap") as? Int ?? 8
+        outerGap = d.object(forKey: "outerGap") as? Int ?? 8
+        aerospacePath = d.string(forKey: "aerospacePath") ?? ""
+        sidebarVisible = d.object(forKey: "sidebarVisible") as? Bool ?? true
+        cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
+        thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
+    }
+
+    /// On first launch: current main monitor first, then the built-in display.
+    func seedMonitorPriorityIfNeeded() {
+        guard defaults.stringArray(forKey: "monitorPriority") == nil else { return }
+        var list: [String] = []
+        if let main = NSScreen.main, !MonitorResolver.isBuiltin(main) {
+            list.append(main.localizedName)
+        }
+        list.append(MonitorResolver.builtinToken)
+        monitorPriority = list
+    }
+
+    var stageOrder: [String] {
+        get { defaults.stringArray(forKey: "stageOrder") ?? [] }
+        set { defaults.set(newValue, forKey: "stageOrder") }
+    }
+}
