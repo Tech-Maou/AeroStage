@@ -8,12 +8,33 @@ struct SettingsView: View {
     @ObservedObject var config: ConfigManager
     @ObservedObject var thumbnails: ThumbnailService
 
+    private enum Tab: String, CaseIterable {
+        case general = "General"
+        case appearance = "Appearance"
+        case keyboard = "Keyboard"
+        case aerospace = "AeroSpace"
+    }
+
+    @State private var tab = Tab.general
+
     var body: some View {
-        TabView {
-            general.tabItem { Label("General", systemImage: "sidebar.right") }
-            appearance.tabItem { Label("Appearance", systemImage: "paintpalette") }
-            keyboard.tabItem { Label("Keyboard", systemImage: "keyboard") }
-            aerospace.tabItem { Label("AeroSpace", systemImage: "rectangle.split.3x1") }
+        // Own tab bar instead of TabView, whose tabs are always centered on macOS.
+        VStack(alignment: .leading, spacing: 0) {
+            Picker("Section", selection: $tab) {
+                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+
+            switch tab {
+            case .general: general
+            case .appearance: appearance
+            case .keyboard: keyboard
+            case .aerospace: aerospace
+            }
         }
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
