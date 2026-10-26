@@ -1,15 +1,17 @@
 import Foundation
 
 /// Template for `~/.aerospace.toml` if none exists yet.
-/// Based on AeroSpace 0.21.3 default-config.toml, modifier ctrl-alt (see below).
+/// Based on AeroSpace 0.21.3 default-config.toml; shortcuts and gaps are managed by AeroStage.
 public enum DefaultConfig {
     public static let template = #"""
 # AeroSpace configuration, created by AeroStage
 # Based on AeroSpace 0.21.3 default-config.toml
 # Docs: https://nikitabobko.github.io/AeroSpace/guide
 #
-# Deviation from the default: the modifier is ctrl-alt instead of alt, because on many
-# European keyboard layouts alt+key types characters (German: alt-l = @, alt-5…9 = [ ] | { }).
+# Gaps and keyboard shortcuts live in the sections marked "managed" and are rewritten by
+# AeroStage (Settings → Keyboard). The modifier depends on the keyboard: alt like in
+# AeroSpace for US layouts, ctrl-alt for layouts where alt+key types characters
+# (German: alt-l = @, alt-5…9 = [ ] | { }).
 
 config-version = 2
 
@@ -52,6 +54,7 @@ gaps.outer.right =      8
 
 [mode.main.binding]
 
+    # >>> AeroStage: bindings (managed) >>>
     ctrl-alt-slash = 'layout tiles horizontal vertical'
     ctrl-alt-comma = 'layout accordion horizontal vertical'
 
@@ -67,6 +70,9 @@ gaps.outer.right =      8
 
     ctrl-alt-minus = 'resize smart -50'
     ctrl-alt-equal = 'resize smart +50'
+
+    ctrl-alt-shift-semicolon = 'mode service'
+    # <<< AeroStage: bindings <<<
 
     # >>> AeroStage: stages (managed) >>>
     # Rewritten by AeroStage on start
@@ -85,8 +91,6 @@ gaps.outer.right =      8
     alt-tab = 'workspace next --wrap-around'
     alt-shift-tab = 'workspace prev --wrap-around'
     # <<< AeroStage: stages <<<
-
-    ctrl-alt-shift-semicolon = 'mode service'
 
 [mode.service.binding]
     esc = ['reload-config', 'mode main']

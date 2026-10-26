@@ -90,6 +90,10 @@ AeroStage only writes between these markers:
 …  # gaps, including the space for the sidebar
 # <<< AeroStage: gaps <<<
 
+    # >>> AeroStage: bindings (managed) >>>
+    …  # AeroSpace default shortcuts with the chosen modifier
+    # <<< AeroStage: bindings <<<
+
     # >>> AeroStage: stages (managed) >>>
     …  # shortcuts for the stages
     # <<< AeroStage: stages <<<
@@ -97,24 +101,34 @@ AeroStage only writes between these markers:
 
 Everything outside the markers stays untouched.
 - Before its first change AeroStage saves a backup as `~/.aerospace.toml.aerostage-backup`.
-- If your own config has no markers, AeroStage leaves it alone. Copy the two sections from
+- If your own config has no markers, AeroStage leaves it alone. Copy the sections from
   [`DefaultConfig.swift`](Sources/AeroStageCore/DefaultConfig.swift) into it.
 - Config management can be turned off completely in the settings.
 
 ## Usage
 
+All shortcuts use one modifier (`mod` below), chosen under **Settings → Keyboard**:
+
+| Preset | Modifier | For |
+|---|---|---|
+| **US** | `alt` | US/ABC layouts, exactly like AeroSpace's defaults |
+| **International** | `ctrl-alt` | Layouts where `alt`+key types characters you need, e.g. German `@ [ ] { } \| ~` |
+| **Custom** | `cmd-alt`, `ctrl-alt-cmd` | Anything else |
+
+On first launch AeroStage picks the preset that matches your current keyboard layout.
+
 | Shortcut | Effect |
 |---|---|
-| `ctrl-alt-1` … `5` | Switch to the stage at position n. Count + 1 opens a new stage |
-| `ctrl-alt-shift-1` … `5` | Move the focused window to the stage at position n |
-| `ctrl-alt-n` | Move the window to a new stage and follow it |
+| `mod-1` … `5` | Switch to the stage at position n. Count + 1 opens a new stage |
+| `mod-shift-1` … `5` | Move the focused window to the stage at position n |
+| `mod-n` | Move the window to a new stage and follow it |
 | `alt-tab` / `alt-shift-tab` | Next / previous stage |
-| `ctrl-alt-s` | Show or hide the sidebar |
+| `mod-s` | Show or hide the sidebar |
 
-All other AeroSpace shortcuts (focus, move, layouts, service mode) are kept, but with
-`ctrl-alt` instead of `alt`: on many European keyboards `alt`+key types characters such as
-`@`, `[`, `]`, `{`, `}`, `|` and `~`. The modifier can be changed in the settings, as can the
-maximum number of stages (5, 7 or 9).
+All other AeroSpace default shortcuts are kept with the same modifier: `mod-h/j/k/l` focus,
+`mod-shift-h/j/k/l` move, `mod-slash`/`mod-comma` layouts, `mod-minus`/`mod-equal` resize,
+`mod-shift-semicolon` service mode. The maximum number of stages (5, 7 or 9) is set in the
+settings as well.
 
 ### Command line
 
@@ -156,7 +170,7 @@ Accessibility permission of its own.
 - Some apps cannot be made narrower than a certain width (Firefox, for example, ~600 pt). With
   many windows side by side next to the reserved sidebar, such windows overlap their
   neighbor slightly. This is AeroSpace behavior with minimum window sizes. Use the accordion
-  layout (`ctrl-alt-comma`), hide the sidebar (`ctrl-alt-s`) or, once available, overlay mode.
+  layout (`mod-comma`), hide the sidebar (`mod-s`) or, once available, overlay mode.
 
 ## Uninstall
 

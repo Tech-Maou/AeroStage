@@ -94,9 +94,52 @@ import Testing
         #expect(body.contains("    ctrl-alt-shift-7 = 'move-node-to-workspace 7'"))
     }
 
-    @Test func templateHasBothBlocks() {
+    @Test func templateHasAllBlocks() {
         #expect(ManagedConfig.replacingBlock("gaps", in: DefaultConfig.template, with: []) != nil)
         #expect(ManagedConfig.replacingBlock("stages", in: DefaultConfig.template, with: []) != nil)
+        #expect(ManagedConfig.replacingBlock("bindings", in: DefaultConfig.template, with: []) != nil)
+    }
+
+    @Test func bindingsUseModifier() {
+        let body = ManagedConfig.bindingsBody(modifier: "alt")
+        #expect(body.contains("    alt-h = 'focus left'"))
+        #expect(body.contains("    alt-shift-l = 'move right'"))
+        #expect(body.contains("    alt-shift-semicolon = 'mode service'"))
+        #expect(!body.contains { $0.contains("ctrl-") })
+    }
+
+    @Test func templateBindingsMatchGenerator() throws {
+        // The template must contain exactly what AeroStage writes for ctrl-alt.
+        let filled = try #require(ManagedConfig.replacingBlock(
+            "bindings", in: DefaultConfig.template, with: ManagedConfig.bindingsBody(modifier: "ctrl-alt")))
+        #expect(filled == DefaultConfig.template)
+    }
+
+    @Test func managedShortcutsDoNotCollide() {
+        for modifier in KeyboardPreset.modifiers {
+            let lines = ManagedConfig.bindingsBody(modifier: modifier)
+                + ManagedConfig.stagesBody(.init(mode: .dynamic, modifier: modifier, maxStages: 9, cliPath: "/x"))
+            let keys = lines.compactMap { $0.split(separator: "=").first?.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            #expect(Set(keys).count == keys.count, "duplicate shortcut for \(modifier)")
+        }
+    }
+}
+
+@Suite struct KeyboardPresetTests {
+    @Test func presetsMapToModifiers() {
+        #expect(KeyboardPreset.us.modifier == "alt")
+        #expect(KeyboardPreset.international.modifier == "ctrl-alt")
+        #expect(KeyboardPreset(modifier: "alt") == .us)
+        #expect(KeyboardPreset(modifier: "ctrl-alt") == .international)
+        #expect(KeyboardPreset(modifier: "cmd-alt") == .custom)
+    }
+
+    @Test func suggestsByLayout() {
+        #expect(KeyboardPreset.suggested(forLayoutID: "com.apple.keylayout.US") == .us)
+        #expect(KeyboardPreset.suggested(forLayoutID: "com.apple.keylayout.ABC") == .us)
+        #expect(KeyboardPreset.suggested(forLayoutID: "com.apple.keylayout.German") == .international)
+        #expect(KeyboardPreset.suggested(forLayoutID: nil) == .international)
     }
 }
 

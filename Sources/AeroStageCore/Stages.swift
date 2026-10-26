@@ -11,6 +11,39 @@ public enum SidebarSide: String, Codable, CaseIterable, Sendable {
     case left, right
 }
 
+/// Shortcut modifier presets for different keyboard layouts.
+public enum KeyboardPreset: String, CaseIterable, Sendable {
+    /// `alt`, exactly like AeroSpace's defaults. On US layouts alt+key only types rarely used characters.
+    case us
+    /// `ctrl-alt`, for layouts where alt+key types characters you need (German: @ [ ] { } | ~).
+    case international
+    case custom
+
+    public static let modifiers = ["alt", "ctrl-alt", "cmd-alt", "ctrl-alt-cmd"]
+
+    public var modifier: String? {
+        switch self {
+        case .us: "alt"
+        case .international: "ctrl-alt"
+        case .custom: nil
+        }
+    }
+
+    public init(modifier: String) {
+        self = Self.allCases.first { $0.modifier == modifier } ?? .custom
+    }
+
+    /// Keyboard layouts (TIS input source IDs) for which `alt` is a safe modifier.
+    public static let usLayoutIDs: Set<String> = [
+        "com.apple.keylayout.US", "com.apple.keylayout.ABC", "com.apple.keylayout.USExtended",
+        "com.apple.keylayout.Dvorak", "com.apple.keylayout.Colemak",
+    ]
+
+    public static func suggested(forLayoutID id: String?) -> KeyboardPreset {
+        id.map(usLayoutIDs.contains) == true ? .us : .international
+    }
+}
+
 /// A stage as it appears in the sidebar.
 public struct Stage: Identifiable, Hashable, Sendable {
     public let workspace: String

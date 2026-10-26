@@ -88,10 +88,32 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("Manage config (gaps and shortcuts)", isOn: $settings.manageConfig)
-                Picker("Modifier", selection: $settings.modifier) {
-                    ForEach(AppSettings.modifiers, id: \.self) { Text($0).tag($0) }
+                Picker("Shortcuts", selection: $settings.keyboardPreset) {
+                    Text("US (alt, AeroSpace default)").tag(KeyboardPreset.us)
+                    Text("International (ctrl-alt)").tag(KeyboardPreset.international)
+                    Text("Custom").tag(KeyboardPreset.custom)
                 }
+                if settings.keyboardPreset == .custom {
+                    Picker("Modifier", selection: $settings.modifier) {
+                        ForEach(KeyboardPreset.modifiers, id: \.self) { Text($0).tag($0) }
+                    }
+                }
+                LabeledContent("Examples") {
+                    Text("\(settings.modifier)-1 stage 1 · \(settings.modifier)-h focus left · \(settings.modifier)-shift-1 move window")
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Keyboard")
+            } footer: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current keyboard layout: \(KeyboardLayout.currentName ?? "unknown"), suggested: \(KeyboardLayout.suggestedPreset == .us ? "US" : "International").")
+                    Text("On many non-US layouts alt+key types characters you need (German: @ [ ] { } | ~), so ctrl-alt is safer there. alt-tab is always used for next stage.")
+                }
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Manage config (gaps and shortcuts)", isOn: $settings.manageConfig)
                 Stepper("Gap between windows: \(settings.innerGap) pt", value: $settings.innerGap, in: 0...40)
                 Stepper("Gap to screen edge: \(settings.outerGap) pt", value: $settings.outerGap, in: 0...40)
                 TextField("Path to aerospace CLI", text: $settings.aerospacePath, prompt: Text("automatic"))

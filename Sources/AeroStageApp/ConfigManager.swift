@@ -39,16 +39,22 @@ final class ConfigManager: ObservableObject {
         }
 
         guard let withGaps = ManagedConfig.replacingBlock(ManagedConfig.gapsBlock, in: original, with: ManagedConfig.gapsBody(input.gaps)),
-              let updated = ManagedConfig.replacingBlock(ManagedConfig.stagesBlock, in: withGaps, with: ManagedConfig.stagesBody(input.bindings))
+              var updated = ManagedConfig.replacingBlock(ManagedConfig.stagesBlock, in: withGaps, with: ManagedConfig.stagesBody(input.bindings))
         else {
             status = "AeroStage markers missing in \(url.path), config left unchanged"
             lastApplied = input
             return
         }
+        // Optional: configs created before v0.3 have no bindings section.
+        let bindings = ManagedConfig.bindingsBody(modifier: input.bindings.modifier)
+        let hasBindings = ManagedConfig.replacingBlock(ManagedConfig.bindingsBlock, in: updated, with: bindings).map {
+            updated = $0
+            return true
+        } ?? false
 
         lastApplied = input
         guard updated != original || !exists else {
-            status = "Up to date"
+            status = hasBindings ? "Up to date" : "Up to date (no bindings section, modifier only applies to stage shortcuts)"
             return
         }
 
@@ -59,7 +65,7 @@ final class ConfigManager: ObservableObject {
             }
             try updated.write(to: url, atomically: true, encoding: .utf8)
             try? await client.reloadConfig()
-            status = "Updated \(Date().formatted(date: .omitted, time: .standard))"
+            status = "Updated \(Date().formatted(date: .omitted, time: .standard))" + (hasBindings ? "" : " (no bindings section)")
         } catch {
             status = "Write failed: \(error.localizedDescription)"
         }

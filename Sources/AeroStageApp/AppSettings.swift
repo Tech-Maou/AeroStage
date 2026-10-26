@@ -44,7 +44,6 @@ final class AppSettings: ObservableObject {
     /// Seconds between live thumbnail refreshes; 0 = only on changes.
     @Published var thumbnailInterval: Double { didSet { defaults.set(thumbnailInterval, forKey: "thumbnailInterval") } }
 
-    static let modifiers = ["ctrl-alt", "alt", "cmd-alt", "ctrl-alt-cmd", "ctrl-alt-shift"]
     static let stageLimits = [5, 7, 9]
     static let thumbnailIntervals: [Double] = [1, 2, 3, 5, 10, 0]
 
@@ -57,7 +56,8 @@ final class AppSettings: ObservableObject {
         monitorPriority = d.stringArray(forKey: "monitorPriority") ?? []
         numbering = NumberingMode(rawValue: d.string(forKey: "numbering") ?? "") ?? .dynamic
         maxStages = d.object(forKey: "maxStages") as? Int ?? 5
-        modifier = d.string(forKey: "modifier") ?? "ctrl-alt"
+        // First launch: alt on US layouts like AeroSpace, ctrl-alt where alt+key types characters.
+        modifier = d.string(forKey: "modifier") ?? KeyboardLayout.suggestedPreset.modifier ?? "ctrl-alt"
         manageConfig = d.object(forKey: "manageConfig") as? Bool ?? true
         innerGap = d.object(forKey: "innerGap") as? Int ?? 8
         outerGap = d.object(forKey: "outerGap") as? Int ?? 8
@@ -76,6 +76,18 @@ final class AppSettings: ObservableObject {
         }
         list.append(MonitorResolver.builtinToken)
         monitorPriority = list
+    }
+
+    var keyboardPreset: KeyboardPreset {
+        get { KeyboardPreset(modifier: modifier) }
+        set {
+            if let preset = newValue.modifier {
+                modifier = preset
+            } else if keyboardPreset != .custom {
+                // Custom starts from a modifier that no preset uses.
+                modifier = "cmd-alt"
+            }
+        }
     }
 
     var stageOrder: [String] {

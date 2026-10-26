@@ -7,6 +7,7 @@ import Foundation
 public enum ManagedConfig {
     public static let gapsBlock = "gaps"
     public static let stagesBlock = "stages"
+    public static let bindingsBlock = "bindings"
 
     public struct GapOptions: Equatable, Sendable {
         public var inner: Int
@@ -62,6 +63,29 @@ public enum ManagedConfig {
             "gaps.outer.bottom =     \(options.outer)",
             "gaps.outer.top =        \(options.outer)",
             "gaps.outer.right =      \(edge(.right))",
+        ]
+    }
+
+    /// AeroSpace's default main-mode shortcuts with the chosen modifier.
+    public static func bindingsBody(modifier mod: String) -> [String] {
+        [
+            "    \(mod)-slash = 'layout tiles horizontal vertical'",
+            "    \(mod)-comma = 'layout accordion horizontal vertical'",
+            "",
+            "    \(mod)-h = 'focus left'",
+            "    \(mod)-j = 'focus down'",
+            "    \(mod)-k = 'focus up'",
+            "    \(mod)-l = 'focus right'",
+            "",
+            "    \(mod)-shift-h = 'move left'",
+            "    \(mod)-shift-j = 'move down'",
+            "    \(mod)-shift-k = 'move up'",
+            "    \(mod)-shift-l = 'move right'",
+            "",
+            "    \(mod)-minus = 'resize smart -50'",
+            "    \(mod)-equal = 'resize smart +50'",
+            "",
+            "    \(mod)-shift-semicolon = 'mode service'",
         ]
     }
 

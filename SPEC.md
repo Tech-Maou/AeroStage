@@ -109,9 +109,16 @@ Maximum number of stages: 5 / 7 / 9, default 5.
 
 ### 3.6 Keyboard
 
-Based on AeroSpace's default config (focus, move, layouts, resize, service mode), but with
-`ctrl-alt` instead of `alt`, because on many European layouts `alt`+key types characters
-(German: `@`, `[`, `]`, `{`, `}`, `|`, `~`). The modifier is configurable. Added or replaced:
+Based on AeroSpace's default config (focus, move, layouts, resize, service mode). All of it
+lives in managed sections and uses one modifier, chosen by preset:
+
+- **US:** `alt`, exactly like AeroSpace.
+- **International:** `ctrl-alt`, because on many European layouts `alt`+key types
+  characters (German: `@`, `[`, `]`, `{`, `}`, `|`, `~`).
+- **Custom:** `cmd-alt`, `ctrl-alt-cmd`.
+
+On first launch the preset is derived from the current keyboard layout (US/ABC/Dvorak/
+Colemak → US, everything else → International). Added or replaced (shown for `ctrl-alt`):
 
 | Shortcut | Command | Effect |
 |---|---|---|
@@ -133,7 +140,8 @@ A proper settings window, reachable via `aerostage settings` and the sidebar's c
 - **Mode:** reserved or overlay, edge trigger on/off, delay (phase 3)
 - **Monitors:** priority list, detected monitors can be added
 - **Stages:** numbering (dynamic/fixed), maximum
-- **AeroSpace:** modifier, gaps, path to the CLI, managed config on/off, status
+- **Keyboard:** preset (US / International / Custom), modifier for custom, detected layout
+- **AeroSpace:** gaps, path to the CLI, managed config on/off, status
 - **General:** launch at login (phase 4)
 
 Stored in `UserDefaults` (`io.github.tech-maou.AeroStage`).
@@ -281,4 +289,6 @@ Each phase starts with a short alignment.
    sidebar stays on the external monitor, per the priority list.
 2. TOML allows each table only once (`[gaps]`, `[mode.main.binding]`). That is why
    AeroStage creates `.aerospace.toml` from its template on first launch and manages the
-   affected parts between markers. The user's own additions outside the markers are kept.
+   affected parts between markers (`gaps`, `bindings`, `stages`). The user's own additions
+   outside the markers are kept. Configs without the `bindings` section (created before
+   v0.3) keep working; the modifier then only applies to the stage shortcuts.
