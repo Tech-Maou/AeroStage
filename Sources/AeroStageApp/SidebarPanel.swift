@@ -46,8 +46,11 @@ final class SidebarController {
     private var revealedByWindowDrag = false
     /// A context menu of the sidebar is open; the menu extends beyond the panel, so leaving
     /// the panel must not hide it.
-    private var openMenus = 0
+    private var openMenus = 0 {
+        didSet { if (oldValue > 0) != (openMenus > 0) { onMenuTrackingChange?(openMenus > 0) } }
+    }
     private var menuOpen: Bool { openMenus > 0 }
+    var onMenuTrackingChange: ((Bool) -> Void)?
     private var menuObservers: [NSObjectProtocol] = []
 
     private(set) var isShown = false

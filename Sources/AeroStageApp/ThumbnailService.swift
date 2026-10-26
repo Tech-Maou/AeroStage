@@ -25,6 +25,13 @@ final class ThumbnailService: ObservableObject {
     var canvas: CGRect = .zero
 
     private(set) var lastCapture: Date?
+    /// While true, new images are held back. Publishing redraws the sidebar, and SwiftUI then
+    /// rebuilds an open context menu, which closes its submenus.
+    var isPaused = false {
+        didSet { if !isPaused { publishPending() } }
+    }
+    private var pendingImages: [Int: CGImage] = [:]
+    private var pendingFrames: [Int: CGRect] = [:]
     private var windowIDs: [Int] = []
     private var loop: Task<Void, Never>?
     private var requestedAccess = false
@@ -116,8 +123,20 @@ final class ThumbnailService: ObservableObject {
         }
         guard !Task.isCancelled else { return }
         lastCapture = Date()
-        if !captured.isEmpty { images.merge(captured) { _, new in new } }
-        if positions.contains(where: { frames[$0.key] != $0.value }) { frames.merge(positions) { _, new in new } }
+        pendingImages.merge(captured) { _, new in new }
+        pendingFrames.merge(positions) { _, new in new }
+        if !isPaused { publishPending() }
+    }
+
+    private func publishPending() {
+        let keep = Set(windowIDs)
+        if !pendingImages.isEmpty {
+            images.merge(pendingImages.filter { keep.contains($0.key) }) { _, new in new }
+        }
+        let changed = pendingFrames.filter { keep.contains($0.key) && frames[$0.key] != $0.value }
+        if !changed.isEmpty { frames.merge(changed) { _, new in new } }
+        pendingImages.removeAll()
+        pendingFrames.removeAll()
     }
 
     /// Position relative to `canvas`, but only if the window lies mostly inside it.

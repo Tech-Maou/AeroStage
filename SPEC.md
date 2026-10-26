@@ -338,6 +338,8 @@ Each phase starts with a short alignment.
 - Settings use their own left-aligned tab bar.
 - The overlay stays open while one of its context menus (or a submenu) is open, tracked via
   `NSMenu` begin/end tracking notifications; afterwards the mouse position decides again.
+  While a menu is open, new thumbnails are held back: publishing them redraws the sidebar,
+  and SwiftUI then rebuilds the open menu, which closed submenus like "View".
 
 ## 15. Open
 

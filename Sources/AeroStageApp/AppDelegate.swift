@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
         sidebar.onVisibilityChange = { [unowned self] _ in updateThumbnails() }
+        sidebar.onMenuTrackingChange = { [unowned self] open in thumbnails.isPaused = open }
         commands.openSettings = { [unowned self] in settingsWindow.show() }
         commands.thumbnailStatus = { [unowned self] in
             let access = switch thumbnails.access {
