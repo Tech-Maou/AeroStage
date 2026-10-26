@@ -87,6 +87,10 @@ final class StateStore: ObservableObject {
     }
 
     func refresh() async {
+        // While the screen is locked the window manager briefly loses all windows (macOS hides
+        // them from the accessibility API). Keep the last state instead of treating stages as
+        // emptied, otherwise AeroStage would switch stages behind the lock screen.
+        if Self.isScreenLocked() { return }
         // Remember the active stage before the update to notice when it just became empty.
         let previousActive = activeWorkspace
         let previousOrder = order.names
@@ -151,7 +155,12 @@ final class StateStore: ObservableObject {
         }
     }
 
-    /// Whether AeroSpace manages this window (a dragged window has to be one of them).
+    static func isScreenLocked() -> Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
+        /// Whether AeroSpace manages this window (a dragged window has to be one of them).
     func manages(windowId: Int) -> Bool {
         windows.contains { $0.windowId == windowId }
     }

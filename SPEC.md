@@ -412,7 +412,10 @@ Each phase starts with a short alignment.
   keeping the previous snapshot, so the lock's phantom closes and restores are not reported.
 - Verified with a terminal window: open, move to another workspace (two events), minimize
   (workspace empty), unminimize, close: each produced the expected event within a refresh.
-  Not yet verified: screen lock.
+  Screen lock with a single stage: state unchanged after unlock.
+- AeroStage itself skips refreshes while the screen is locked (v0.10.1). Otherwise any event
+  during the lock would make it read the window manager's temporarily emptied model and
+  leave the "emptied" stage behind the lock screen.
 - AeroStage refreshes on the event like on any other and disables the 0.5 s window-server
   check when the CLI is `aerostage-wm`; with plain AeroSpace the check stays as fallback.
   `aerostage status` shows "(window events)" or "(fallback check)".
