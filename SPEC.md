@@ -356,7 +356,21 @@ Each phase starts with a short alignment.
 - More open stages than the limit (e.g. after switching to a smaller display) are kept;
   only new stages cannot be added until there is room again.
 
-## 16. Open
+## 16. Leaving an emptied stage
+
+- Minimized windows disappear from `aerospace list-windows`, so closing and minimizing look
+  the same: the visible stage had windows before a refresh and has none after it.
+- AeroStage then switches to the stage above (by the previous order), or to the next one if
+  it was the first.
+- Closing an app's last window makes macOS activate another app about a second later, and
+  AeroSpace follows it to that app's stage. AeroStage therefore holds the chosen stage for
+  2 s and switches back if AeroSpace jumps away; a shortcut (`binding-triggered`), a click in
+  the sidebar or a CLI command ends the hold immediately.
+- If the last window was moved to another stage and focus followed it (`mod-n`), nothing
+  happens; if focus stayed on the empty stage, the rule applies as well.
+- Verified with a terminal window on stage 5 of 5: closing and minimizing both end on stage 4.
+
+## 17. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

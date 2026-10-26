@@ -26,6 +26,9 @@ final class StateStore: ObservableObject {
     /// Most recently focused window per workspace; shown in front of the stack.
     private var lastFocused: [String: Int] = [:]
     private var pendingRefresh: Task<Void, Never>?
+    /// After leaving an emptied stage: hold this stage for a moment against macOS activating
+    /// another app (AeroSpace would follow it to that app's stage).
+    private var heldStage: (workspace: String, until: Date)?
 
     init(client: AeroSpaceClient, settings: AppSettings) {
         self.client = client
@@ -34,6 +37,7 @@ final class StateStore: ObservableObject {
     }
 
     func handle(_ event: AeroEvent) {
+        holdStageIfNeeded(event)
         if event.kind == .focusChanged, let workspace = event.workspace, let windowId = event.windowId {
             lastFocused[workspace] = windowId
         }
@@ -55,6 +59,10 @@ final class StateStore: ObservableObject {
     }
 
     func refresh() async {
+        // Remember the active stage before the update to notice when it just became empty.
+        let previousActive = activeWorkspace
+        let previousOrder = order.names
+        let previousWindowIDs = Set(windows.filter { $0.workspace == previousActive }.map(\.windowId))
         do {
             async let windows = client.windows()
             async let monitors = client.monitors()
@@ -72,6 +80,47 @@ final class StateStore: ObservableObject {
         resolveSidebarTarget()
         activeWorkspace = visible.first { $0.monitorId == sidebarMonitor?.monitorId }?.workspace
         restage()
+
+        guard let emptied = previousActive, !previousWindowIDs.isEmpty,
+              !windows.contains(where: { $0.workspace == emptied })
+        else { return }
+        // Closed or minimized: the windows are gone. macOS then activates some other app and
+        // AeroSpace follows it to that app's stage, so AeroStage overrides that jump.
+        // Moved away: only act if we are still on the empty stage (not when following the window).
+        let closed = !windows.contains { previousWindowIDs.contains($0.windowId) }
+        if closed || activeWorkspace == emptied {
+            leaveEmptiedStage(emptied, previousOrder: previousOrder)
+        }
+    }
+
+    /// The last window of the visible stage was closed, minimized or moved away: show the
+    /// stage above it, or the next one if it was the first (like Stage Manager).
+    private func leaveEmptiedStage(_ emptied: String, previousOrder: [String]) {
+        guard let index = previousOrder.firstIndex(of: emptied) else { return }
+        let remaining = Set(windows.map(\.workspace))
+        let above = previousOrder[..<index].last { remaining.contains($0) }
+        let below = previousOrder[(index + 1)...].first { remaining.contains($0) }
+        guard let target = above ?? below else { return }
+        heldStage = (target, Date().addingTimeInterval(2))
+        let client = client
+        Task { try? await client.workspace(target) }
+    }
+
+    /// The user did something on purpose (shortcut, click): stop holding the stage.
+    func releaseHeldStage() {
+        heldStage = nil
+    }
+
+    private func holdStageIfNeeded(_ event: AeroEvent) {
+        guard let held = heldStage else { return }
+        if event.kind == .bindingTriggered || Date() > held.until {
+            heldStage = nil
+            return
+        }
+        if event.kind == .focusedWorkspaceChanged, let workspace = event.workspace, workspace != held.workspace {
+            let client = client
+            Task { try? await client.workspace(held.workspace) }
+        }
     }
 
     /// Whether AeroSpace manages this window (a dragged window has to be one of them).

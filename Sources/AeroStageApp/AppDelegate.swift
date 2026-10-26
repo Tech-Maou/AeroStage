@@ -160,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Runs an AeroSpace command; `dismiss` hides the overlay afterwards (a stage or window was chosen).
     private func run(dismiss: Bool = false, _ action: @escaping @Sendable (AeroSpaceClient) async throws -> Void) {
         let client = store.client
+        store.releaseHeldStage()
         if dismiss { sidebar.dismissOverlay() }
         Task {
             do { try await action(client) } catch { NSLog("AeroStage: \(error)") }

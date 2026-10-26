@@ -39,6 +39,8 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
   toggle floating/tiling, or close it; right-click a card to switch to or close the whole stage.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
   the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
+- When the last window of the visible stage is closed, minimized or moved away, AeroStage
+  shows the stage above it (or the next one if it was the first).
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
   the external display, otherwise the built-in one). Other monitors such as a TV stay free.
 - Real-time updates via `aerospace subscribe`, no state polling.

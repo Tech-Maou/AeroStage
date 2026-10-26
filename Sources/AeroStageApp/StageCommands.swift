@@ -18,6 +18,7 @@ final class StageCommands {
     }
 
     func handle(_ request: IPCRequest) async -> IPCResponse {
+        if request.command != .status { store.releaseHeldStage() }
         do {
             let response = try await execute(request)
             store.scheduleRefresh()
