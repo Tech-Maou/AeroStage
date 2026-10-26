@@ -80,16 +80,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             focusWindow: { [unowned self] id in
                 run(dismiss: true) { try await $0.focus(windowId: id) }
             },
+            // A moved window is tiled so the target stage splits like any other stage;
+            // otherwise a floating window would just cover the others.
             moveWindow: { [unowned self] id, workspace in
-                run { try await $0.moveWindow(id, to: workspace) }
+                run { try await $0.moveWindow(id, to: workspace); try? await $0.tile(windowId: id) }
             },
             moveWindowToCurrentStage: { [unowned self] id in
                 guard let current = store.activeWorkspace else { return }
-                run { try await $0.moveWindow(id, to: current) }
+                run { try await $0.moveWindow(id, to: current); try? await $0.tile(windowId: id) }
             },
             moveWindowToNewStage: { [unowned self] id in
                 guard let name = commands.newStageName() else { return NSSound.beep() }
-                run { try await $0.moveWindow(id, to: name) }
+                run { try await $0.moveWindow(id, to: name); try? await $0.tile(windowId: id) }
+            },
+            toggleFloating: { [unowned self] id in
+                run { try await $0.toggleFloating(windowId: id) }
             },
             newStage: { [unowned self] in
                 guard let name = commands.newStageName() else { return NSSound.beep() }

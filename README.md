@@ -13,7 +13,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.4)**
+**Available (v0.5)**
 
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
@@ -31,15 +31,18 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
   active stage is highlighted.
 - Click a card to switch stages, click a thumbnail or icon to focus exactly that window.
 - **Drag & drop** a window onto another card to move it there, or onto **New Stage** to put
-  it on a new stage. Clicking **New Stage** opens an empty one.
+  it on a new stage. Clicking **New Stage** opens an empty one. Moved windows are tiled, so
+  the target stage splits like any other.
 - **Context menus:** right-click a window to focus it, move it to the current or a new stage,
-  or close it; right-click a card to switch to or close the whole stage.
+  toggle floating/tiling, or close it; right-click a card to switch to or close the whole stage.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
   the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
   the external display, otherwise the built-in one). Other monitors such as a TV stay free.
 - Real-time updates via `aerospace subscribe`, no state polling.
-- Light and dark mode, no Dock icon, never steals keyboard focus.
+- **Customizable look:** background color, opacity and optional blur, title color and size.
+- Settings in four tabs: General, Appearance, Keyboard, AeroSpace.
+- No Dock icon, never steals keyboard focus.
 
 **Planned**
 
@@ -134,8 +137,7 @@ On first launch AeroStage picks the preset that matches your current keyboard la
 
 All other AeroSpace default shortcuts are kept with the same modifier: `mod-h/j/k/l` focus,
 `mod-shift-h/j/k/l` move, `mod-slash`/`mod-comma` layouts, `mod-minus`/`mod-equal` resize,
-`mod-shift-semicolon` service mode. The maximum number of stages (5, 7 or 9) is set in the
-settings as well.
+`mod-shift-semicolon` service mode. Up to 5 stages are supported.
 
 ### Command line
 
@@ -173,6 +175,11 @@ AeroStage controls windows exclusively through the `aerospace` CLI and therefore
 Accessibility permission of its own.
 
 ## Known limitations
+
+- AeroSpace tiles every window to fill its stage; windows cannot be snapped to a side with
+  the mouse. Arrange them with `mod-shift-h/j/k/l` and switch layouts with `mod-slash` or
+  `mod-comma`. A window that floats above the others can be tiled again via its context
+  menu (**Toggle Floating / Tiling**) or with service mode (`mod-shift-semicolon`, then `f`).
 
 - Some apps cannot be made narrower than a certain width (Firefox, for example, ~600 pt). With
   many windows side by side, such windows overlap their neighbor slightly. This is AeroSpace

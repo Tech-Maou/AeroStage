@@ -74,6 +74,16 @@ struct AeroSpaceClient: Sendable {
         _ = try await run(args)
     }
 
+    /// Puts a window back into the tiling tree (no-op if it is tiled already).
+    func tile(windowId: Int) async throws {
+        _ = try await run(["layout", "tiling", "--window-id", String(windowId)])
+    }
+
+    /// Switches a window between floating and tiling.
+    func toggleFloating(windowId: Int) async throws {
+        _ = try await run(["layout", "floating", "tiling", "--window-id", String(windowId)])
+    }
+
     func close(windowId: Int) async throws {
         _ = try await run(["close", "--window-id", String(windowId)])
     }

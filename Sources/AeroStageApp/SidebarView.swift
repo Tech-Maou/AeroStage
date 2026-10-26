@@ -10,6 +10,7 @@ struct SidebarActions {
     var moveWindow: (Int, String) -> Void
     var moveWindowToCurrentStage: (Int) -> Void
     var moveWindowToNewStage: (Int) -> Void
+    var toggleFloating: (Int) -> Void
     var newStage: () -> Void
     var closeWindow: (Int) -> Void
     var closeStage: (String) -> Void
@@ -17,6 +18,27 @@ struct SidebarActions {
     var openSettings: () -> Void
     var hideSidebar: () -> Void
     var quit: () -> Void
+}
+
+/// Text color and title size chosen in the settings, passed down to all sidebar views.
+private struct SidebarInkKey: EnvironmentKey {
+    static let defaultValue = Color.white
+}
+
+private struct SidebarTitleSizeKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 14
+}
+
+extension EnvironmentValues {
+    var sidebarInk: Color {
+        get { self[SidebarInkKey.self] }
+        set { self[SidebarInkKey.self] = newValue }
+    }
+
+    var sidebarTitleSize: CGFloat {
+        get { self[SidebarTitleSizeKey.self] }
+        set { self[SidebarTitleSizeKey.self] = newValue }
+    }
 }
 
 struct SidebarView: View {
@@ -42,14 +64,22 @@ struct SidebarView: View {
             if !store.isConnected {
                 Label("AeroSpace not reachable", systemImage: "exclamationmark.triangle")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(nsColor: settings.textColor).opacity(0.8))
                     .padding(.top, 8)
             }
             Spacer(minLength: 0)
         }
         .padding(6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(VisualEffectBackground().clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)))
+        .background {
+            ZStack {
+                if settings.backgroundBlur { VisualEffectBackground() }
+                Color(nsColor: settings.backgroundColor).opacity(settings.backgroundOpacity)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .environment(\.sidebarInk, Color(nsColor: settings.textColor))
+        .environment(\.sidebarTitleSize, settings.titleSize)
         .contentShape(Rectangle())
         .contextMenu {
             Button("Settings …", action: actions.openSettings)
@@ -67,6 +97,8 @@ struct SidebarView: View {
 }
 
 struct StageCard: View {
+    @Environment(\.sidebarInk) private var ink
+    @Environment(\.sidebarTitleSize) private var titleSize
     let stage: Stage
     let label: String
     let side: SidebarSide
@@ -122,21 +154,23 @@ struct StageCard: View {
     /// "1. Firefox, Mail, Code": number and app names in order, without duplicates.
     private var header: some View {
         let names = stage.windows.map(\.appName).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
-        return (Text("\(label). ").fontWeight(.bold).foregroundColor(stage.isFocused ? .accentColor : .primary)
-            + Text(names.isEmpty ? "Empty" : names.joined(separator: ", ")).foregroundColor(.secondary))
-            .font(.system(size: 11, design: .rounded))
+        return (Text("\(label). ").font(.system(size: titleSize + 3, weight: .bold, design: .rounded))
+            + Text(names.isEmpty ? "Empty" : names.joined(separator: ", ")).font(.system(size: titleSize, weight: .semibold, design: .rounded)))
+            .foregroundStyle(ink)
+            .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
             .lineLimit(1)
             .truncationMode(.tail)
             .help(names.joined(separator: ", "))
     }
 
     private var fill: Color {
-        if stage.isFocused { return Color.accentColor.opacity(0.18) }
-        return Color.primary.opacity(hovering ? 0.12 : 0.06)
+        if stage.isFocused { return Color.accentColor.opacity(0.3) }
+        return ink.opacity(hovering ? 0.16 : 0.08)
     }
 }
 
 struct WindowIconGrid: View {
+    @Environment(\.sidebarInk) private var ink
     let windows: [AeroWindow]
     let actions: SidebarActions
     private let maxVisible = 6
@@ -145,7 +179,7 @@ struct WindowIconGrid: View {
         if windows.isEmpty {
             Text("Empty")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(ink.opacity(0.6))
                 .frame(maxWidth: .infinity, minHeight: 30)
         } else {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 30, maximum: 40), spacing: 4)], alignment: .leading, spacing: 4) {
@@ -156,7 +190,7 @@ struct WindowIconGrid: View {
                 if windows.count > maxVisible {
                     Text("+\(windows.count - maxVisible + 1)")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ink.opacity(0.8))
                         .frame(width: 30, height: 30)
                 }
             }
@@ -166,6 +200,7 @@ struct WindowIconGrid: View {
 
 /// Window thumbnails stacked like in Stage Manager; the most recently focused window is in front.
 struct WindowStack: View {
+    @Environment(\.sidebarInk) private var ink
     let windows: [AeroWindow]
     let images: [Int: CGImage]
     let side: SidebarSide
@@ -176,7 +211,7 @@ struct WindowStack: View {
         if windows.isEmpty {
             Text("Empty")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(ink.opacity(0.6))
                 .frame(maxWidth: .infinity, minHeight: 30)
         } else {
             let layers = Array(windows.prefix(maxLayers).enumerated())
@@ -216,6 +251,7 @@ struct WindowStack: View {
 /// The windows of a stage to scale at their actual position, like a miniature screen.
 /// Windows without a known position (never visible yet) are laid out side by side.
 struct StageLayout: View {
+    @Environment(\.sidebarInk) private var ink
     let windows: [AeroWindow]
     let images: [Int: CGImage]
     let frames: [Int: CGRect]
@@ -230,7 +266,7 @@ struct StageLayout: View {
         if windows.isEmpty {
             Text("Empty")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(ink.opacity(0.6))
                 .frame(maxWidth: .infinity, minHeight: 30)
         } else {
             let placed = placements()
@@ -238,7 +274,7 @@ struct StageLayout: View {
                 let scale = geometry.size.width / max(canvas.width, 1)
                 ZStack(alignment: .topLeading) {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(Color.primary.opacity(0.07))
+                        .fill(ink.opacity(0.08))
                     // Draw the most recently focused window (first in the list) last, i.e. on top.
                     ForEach(placed.reversed(), id: \.window.id) { item in
                         WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 12)
@@ -265,6 +301,7 @@ struct StageLayout: View {
 
 /// A thumbnail with app icon; without an image just the icon on a neutral background.
 struct WindowThumbnail: View {
+    @Environment(\.sidebarInk) private var ink
     let window: AeroWindow
     let image: CGImage?
     var badgeSize: CGFloat = 22
@@ -280,7 +317,7 @@ struct WindowThumbnail: View {
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .clipShape(shape)
-                    .overlay(shape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
+                    .overlay(shape.strokeBorder(ink.opacity(0.18), lineWidth: 0.5))
                     .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
                     // App icon at the corner of the image, not of the (possibly wider) frame
                     .overlay(alignment: .bottomLeading) {
@@ -291,7 +328,7 @@ struct WindowThumbnail: View {
                             .offset(x: -badgeSize / 7, y: badgeSize / 7)
                     }
             } else {
-                shape.fill(Color.primary.opacity(0.08))
+                shape.fill(ink.opacity(0.1))
                     .overlay(Image(nsImage: icon).resizable().frame(width: badgeSize * 1.4, height: badgeSize * 1.4))
             }
         }
@@ -347,6 +384,7 @@ struct VisualEffectBackground: NSViewRepresentable {
 /// Drop target and button at the end of the sidebar: drop a window here for a new stage,
 /// click to open an empty one.
 struct NewStageZone: View {
+    @Environment(\.sidebarInk) private var ink
     let actions: SidebarActions
     @State private var targeted = false
     @State private var hovering = false
@@ -355,10 +393,10 @@ struct NewStageZone: View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         Label("New Stage", systemImage: "plus")
             .font(.system(size: 11, weight: .medium, design: .rounded))
-            .foregroundStyle(targeted ? Color.accentColor : .secondary)
+            .foregroundStyle(targeted ? Color.accentColor : ink.opacity(0.75))
             .frame(maxWidth: .infinity, minHeight: targeted ? 56 : 30)
-            .background(shape.fill(Color.primary.opacity(targeted ? 0.1 : hovering ? 0.06 : 0.02)))
-            .overlay(shape.strokeBorder(targeted ? Color.accentColor : Color.primary.opacity(0.15),
+            .background(shape.fill(ink.opacity(targeted ? 0.14 : hovering ? 0.1 : 0.04)))
+            .overlay(shape.strokeBorder(targeted ? Color.accentColor : ink.opacity(0.3),
                                         style: StrokeStyle(lineWidth: 1.5, dash: [5, 3])))
             .contentShape(shape)
             .onTapGesture { actions.newStage() }
@@ -385,6 +423,7 @@ extension View {
                 Button("Focus Window") { actions.focusWindow(window.windowId) }
                 Button("Move to Current Stage") { actions.moveWindowToCurrentStage(window.windowId) }
                 Button("Move to New Stage") { actions.moveWindowToNewStage(window.windowId) }
+                Button("Toggle Floating / Tiling") { actions.toggleFloating(window.windowId) }
                 Divider()
                 Button("Close Window") { actions.closeWindow(window.windowId) }
             }

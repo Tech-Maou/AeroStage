@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 3 complete (v0.4)
+Status: **in progress**, phase 3 complete (v0.5)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -68,7 +68,8 @@ Side: left or right, **right by default**.
     like a miniature screen.
   - **App Icons:** app icons of the windows in a grid.
 - The active stage is highlighted.
-- Light and dark mode, background in system material (vibrancy).
+- Background color and opacity (default black at 30 %), optional blur; title color
+  (default white, with a soft shadow) and size (default 14 pt, the number 3 pt larger).
 - Tooltip on hover: app name and window title.
 - Width in **% of the monitor width**, clamped by minimum and maximum in points, so it fits
   on a 5K ultrawide as well as on a laptop display.
@@ -105,7 +106,7 @@ Setting **"Numbering"**:
 Internal names are deliberately numbers, so AeroSpace keeps working sensibly without
 AeroStage.
 
-Maximum number of stages: 5 / 7 / 9, default 5.
+Maximum number of stages: 5 (fixed).
 
 ### 3.6 Keyboard
 
@@ -134,15 +135,15 @@ In fixed mode AeroStage writes the plain AeroSpace commands instead (`workspace 
 
 ### 3.7 Settings
 
-A proper settings window, reachable via `aerostage settings` and the sidebar's context menu:
+A settings window with four tabs, reachable via `aerostage settings` and the sidebar's
+context menu:
 
-- **Appearance:** side, width in %, min/max, view, thumbnail refresh interval
-- **Mode:** reserved or overlay, edge trigger on/off, delay (phase 3)
-- **Monitors:** priority list, detected monitors can be added
-- **Stages:** numbering (dynamic/fixed), maximum
+- **General:** mode (reserved/overlay, edge trigger, delay), side and width, monitor
+  priority list, numbering (dynamic/fixed); launch at login (phase 4)
+- **Appearance:** view, thumbnail refresh interval, Screen Recording status, background
+  color/opacity/blur, title color and size
 - **Keyboard:** preset (US / International / Custom), modifier for custom, detected layout
-- **AeroSpace:** gaps, path to the CLI, managed config on/off, status
-- **General:** launch at login (phase 4)
+- **AeroSpace:** managed config on/off, gaps, path to the CLI, status
 
 Stored in `UserDefaults` (`io.github.tech-maou.AeroStage`).
 
@@ -299,7 +300,16 @@ Each phase starts with a short alignment.
   (`aerospace close --window-id`); card → switch, close stage (all windows; apps still ask
   about unsaved changes).
 
-## 12. Open
+## 12. v0.5
+
+- Windows moved via the sidebar (drag & drop, context menu) are tiled afterwards with
+  `layout tiling --window-id`, so the target stage splits like any other stage. Before, a
+  window AeroSpace had made floating covered the tiled ones. The window context menu can
+  toggle floating/tiling.
+- Appearance settings (colors, opacity, blur, title size), settings grouped in tabs, the
+  stage maximum is fixed at 5.
+
+## 13. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

@@ -46,7 +46,8 @@ final class AppSettings: ObservableObject {
     /// Monitor names in descending priority; `MonitorResolver.builtinToken` stands for the built-in display.
     @Published var monitorPriority: [String] { didSet { defaults.set(monitorPriority, forKey: "monitorPriority") } }
     @Published var numbering: NumberingMode { didSet { defaults.set(numbering.rawValue, forKey: "numbering") } }
-    @Published var maxStages: Int { didSet { defaults.set(maxStages, forKey: "maxStages") } }
+    /// Fixed; more stages than this are not needed in practice.
+    let maxStages = 5
     @Published var modifier: String { didSet { defaults.set(modifier, forKey: "modifier") } }
     @Published var manageConfig: Bool { didSet { defaults.set(manageConfig, forKey: "manageConfig") } }
     @Published var innerGap: Int { didSet { defaults.set(innerGap, forKey: "innerGap") } }
@@ -58,11 +59,17 @@ final class AppSettings: ObservableObject {
     @Published var edgeTrigger: Bool { didSet { defaults.set(edgeTrigger, forKey: "edgeTrigger") } }
     /// Seconds the mouse has to rest at the screen edge before the overlay appears.
     @Published var revealDelay: Double { didSet { defaults.set(revealDelay, forKey: "revealDelay") } }
+    @Published var backgroundColor: NSColor { didSet { defaults.set(backgroundColor.storedString, forKey: "backgroundColor") } }
+    /// 0 = fully transparent, 1 = solid.
+    @Published var backgroundOpacity: Double { didSet { defaults.set(backgroundOpacity, forKey: "backgroundOpacity") } }
+    @Published var backgroundBlur: Bool { didSet { defaults.set(backgroundBlur, forKey: "backgroundBlur") } }
+    @Published var textColor: NSColor { didSet { defaults.set(textColor.storedString, forKey: "textColor") } }
+    /// Point size of the stage titles; the number is a bit larger.
+    @Published var titleSize: Double { didSet { defaults.set(titleSize, forKey: "titleSize") } }
     @Published var cardStyle: CardStyle { didSet { defaults.set(cardStyle.rawValue, forKey: "cardStyle") } }
     /// Seconds between live thumbnail refreshes; 0 = only on changes.
     @Published var thumbnailInterval: Double { didSet { defaults.set(thumbnailInterval, forKey: "thumbnailInterval") } }
 
-    static let stageLimits = [5, 7, 9]
     static let thumbnailIntervals: [Double] = [1, 2, 3, 5, 10, 0]
     static let revealDelays: [Double] = [0, 0.1, 0.2, 0.35, 0.5]
 
@@ -74,7 +81,6 @@ final class AppSettings: ObservableObject {
         maxWidth = d.object(forKey: "maxWidth") as? Double ?? 260
         monitorPriority = d.stringArray(forKey: "monitorPriority") ?? []
         numbering = NumberingMode(rawValue: d.string(forKey: "numbering") ?? "") ?? .dynamic
-        maxStages = d.object(forKey: "maxStages") as? Int ?? 5
         // First launch: alt on US layouts like AeroSpace, ctrl-alt where alt+key types characters.
         modifier = d.string(forKey: "modifier") ?? KeyboardLayout.suggestedPreset.modifier ?? "ctrl-alt"
         manageConfig = d.object(forKey: "manageConfig") as? Bool ?? true
@@ -85,6 +91,11 @@ final class AppSettings: ObservableObject {
         displayMode = DisplayMode(rawValue: d.string(forKey: "displayMode") ?? "") ?? .overlay
         edgeTrigger = d.object(forKey: "edgeTrigger") as? Bool ?? true
         revealDelay = d.object(forKey: "revealDelay") as? Double ?? 0.1
+        backgroundColor = NSColor(storedString: d.string(forKey: "backgroundColor")) ?? .black
+        backgroundOpacity = d.object(forKey: "backgroundOpacity") as? Double ?? 0.3
+        backgroundBlur = d.object(forKey: "backgroundBlur") as? Bool ?? false
+        textColor = NSColor(storedString: d.string(forKey: "textColor")) ?? .white
+        titleSize = d.object(forKey: "titleSize") as? Double ?? 14
         cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
         thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
     }
@@ -115,5 +126,19 @@ final class AppSettings: ObservableObject {
     var stageOrder: [String] {
         get { defaults.stringArray(forKey: "stageOrder") ?? [] }
         set { defaults.set(newValue, forKey: "stageOrder") }
+    }
+}
+
+extension NSColor {
+    /// "r g b" in sRGB, 0…1.
+    var storedString: String {
+        let color = usingColorSpace(.sRGB) ?? self
+        return String(format: "%.4f %.4f %.4f", color.redComponent, color.greenComponent, color.blueComponent)
+    }
+
+    convenience init?(storedString: String?) {
+        let parts = storedString?.split(separator: " ").compactMap { Double($0) } ?? []
+        guard parts.count == 3 else { return nil }
+        self.init(srgbRed: parts[0], green: parts[1], blue: parts[2], alpha: 1)
     }
 }

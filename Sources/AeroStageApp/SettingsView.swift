@@ -9,6 +9,19 @@ struct SettingsView: View {
     @ObservedObject var thumbnails: ThumbnailService
 
     var body: some View {
+        TabView {
+            general.tabItem { Label("General", systemImage: "sidebar.right") }
+            appearance.tabItem { Label("Appearance", systemImage: "paintpalette") }
+            keyboard.tabItem { Label("Keyboard", systemImage: "keyboard") }
+            aerospace.tabItem { Label("AeroSpace", systemImage: "rectangle.split.3x1") }
+        }
+        .frame(width: 520)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // MARK: General: mode, position, monitors, numbering
+
+    private var general: some View {
         Form {
             Section {
                 Picker("Mode", selection: $settings.displayMode) {
@@ -32,7 +45,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Appearance") {
+            Section("Position and Size") {
                 Picker("Side", selection: $settings.side) {
                     Text("Left").tag(SidebarSide.left)
                     Text("Right").tag(SidebarSide.right)
@@ -42,27 +55,6 @@ struct SettingsView: View {
                     HStack {
                         Slider(value: $settings.widthPercent, in: 3...20, step: 0.5)
                         Text("\(settings.widthPercent, specifier: "%.1f") %").monospacedDigit().frame(width: 52, alignment: .trailing)
-                    }
-                }
-                Picker("Cards show", selection: $settings.cardStyle) {
-                    ForEach(CardStyle.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                if settings.cardStyle.usesThumbnails {
-                    Picker("Refresh thumbnails", selection: $settings.thumbnailInterval) {
-                        ForEach(AppSettings.thumbnailIntervals, id: \.self) { seconds in
-                            Text(seconds == 0 ? "Only on changes" : "Every \(Int(seconds)) s").tag(seconds)
-                        }
-                    }
-                    if thumbnails.access == .denied {
-                        LabeledContent("Screen Recording") {
-                            HStack {
-                                Text("not allowed, showing icons").foregroundStyle(.secondary)
-                                Button("Allow …") {
-                                    thumbnails.requestAccess()
-                                    thumbnails.openPrivacySettings()
-                                }
-                            }
-                        }
                     }
                 }
                 Stepper("At least \(Int(settings.minWidth)) pt", value: $settings.minWidth, in: 60...400, step: 10)
@@ -99,16 +91,83 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Stages") {
+            Section {
                 Picker("Numbering", selection: $settings.numbering) {
                     Text("Dynamic (positions)").tag(NumberingMode.dynamic)
                     Text("Fixed (AeroSpace names)").tag(NumberingMode.fixed)
                 }
-                Picker("Maximum", selection: $settings.maxStages) {
-                    ForEach(AppSettings.stageLimits, id: \.self) { Text("\($0)").tag($0) }
+            } header: {
+                Text("Stages")
+            } footer: {
+                Text("Up to \(settings.maxStages) stages.").foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    // MARK: Appearance: cards and colors
+
+    private var appearance: some View {
+        Form {
+            Section("Cards") {
+                Picker("Cards show", selection: $settings.cardStyle) {
+                    ForEach(CardStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                if settings.cardStyle.usesThumbnails {
+                    Picker("Refresh thumbnails", selection: $settings.thumbnailInterval) {
+                        ForEach(AppSettings.thumbnailIntervals, id: \.self) { seconds in
+                            Text(seconds == 0 ? "Only on changes" : "Every \(Int(seconds)) s").tag(seconds)
+                        }
+                    }
+                    if thumbnails.access == .denied {
+                        LabeledContent("Screen Recording") {
+                            HStack {
+                                Text("not allowed, showing icons").foregroundStyle(.secondary)
+                                Button("Allow …") {
+                                    thumbnails.requestAccess()
+                                    thumbnails.openPrivacySettings()
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
+            Section("Background") {
+                ColorPicker("Color", selection: colorBinding(\.backgroundColor), supportsOpacity: false)
+                LabeledContent("Opacity") {
+                    HStack {
+                        Slider(value: $settings.backgroundOpacity, in: 0...1, step: 0.05)
+                        Text("\(Int(settings.backgroundOpacity * 100)) %").monospacedDigit().frame(width: 44, alignment: .trailing)
+                    }
+                }
+                Toggle("Blur what is behind the sidebar", isOn: $settings.backgroundBlur)
+            }
+
+            Section {
+                ColorPicker("Color", selection: colorBinding(\.textColor), supportsOpacity: false)
+                Stepper("Size: \(Int(settings.titleSize)) pt", value: $settings.titleSize, in: 10...24, step: 1)
+                Button("Reset Colors") {
+                    settings.backgroundColor = .black
+                    settings.backgroundOpacity = 0.3
+                    settings.backgroundBlur = false
+                    settings.textColor = .white
+                    settings.titleSize = 14
+                }
+            } header: {
+                Text("Titles")
+            } footer: {
+                Text("Titles get a soft shadow so they stay readable on a transparent background.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    // MARK: Keyboard
+
+    private var keyboard: some View {
+        Form {
             Section {
                 Picker("Shortcuts", selection: $settings.keyboardPreset) {
                     Text("US (alt, AeroSpace default)").tag(KeyboardPreset.us)
@@ -124,8 +183,6 @@ struct SettingsView: View {
                     Text("\(settings.modifier)-1 stage 1 · \(settings.modifier)-h focus left · \(settings.modifier)-shift-1 move window")
                         .foregroundStyle(.secondary)
                 }
-            } header: {
-                Text("Keyboard")
             } footer: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Current keyboard layout: \(KeyboardLayout.currentName ?? "unknown"), suggested: \(KeyboardLayout.suggestedPreset == .us ? "US" : "International").")
@@ -133,14 +190,19 @@ struct SettingsView: View {
                 }
                 .foregroundStyle(.secondary)
             }
+        }
+        .formStyle(.grouped)
+    }
 
+    // MARK: AeroSpace
+
+    private var aerospace: some View {
+        Form {
             Section {
                 Toggle("Manage config (gaps and shortcuts)", isOn: $settings.manageConfig)
                 Stepper("Gap between windows: \(settings.innerGap) pt", value: $settings.innerGap, in: 0...40)
                 Stepper("Gap to screen edge: \(settings.outerGap) pt", value: $settings.outerGap, in: 0...40)
                 TextField("Path to aerospace CLI", text: $settings.aerospacePath, prompt: Text("automatic"))
-            } header: {
-                Text("AeroSpace")
             } footer: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.isConnected ? "Connected" : "Not reachable")
@@ -150,8 +212,13 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480)
-        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func colorBinding(_ keyPath: ReferenceWritableKeyPath<AppSettings, NSColor>) -> Binding<Color> {
+        Binding(
+            get: { Color(nsColor: settings[keyPath: keyPath]) },
+            set: { settings[keyPath: keyPath] = NSColor($0) }
+        )
     }
 
     private var addableEntries: [String] {
