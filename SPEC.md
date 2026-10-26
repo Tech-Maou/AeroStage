@@ -351,7 +351,8 @@ Each phase starts with a short alignment.
   shortcuts follow (`mod-1` … `mod-<max>`).
 - The sidebar always gives every card the same preview height: natural when there is room,
   smaller when there are many stages. The icon view does not shrink.
-- Measured on a 2560×1080 pt display with a 179 pt sidebar: 7 stacked, 7 icons, 9 layout.
+- On a 2560×1080 pt display with a 179 pt sidebar: 9 in layout view (measured), 7 stacked and
+  7 icons (calculated).
 - More open stages than the limit (e.g. after switching to a smaller display) are kept;
   only new stages cannot be added until there is room again.
 
