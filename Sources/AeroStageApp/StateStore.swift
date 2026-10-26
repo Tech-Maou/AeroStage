@@ -29,11 +29,38 @@ final class StateStore: ObservableObject {
     /// After leaving an emptied stage: hold this stage for a moment against macOS activating
     /// another app (AeroSpace would follow it to that app's stage).
     private var heldStage: (workspace: String, until: Date)?
+    private var visibilityTimer: Timer?
+    /// Windows of the visible stage that were missing at the last check.
+    private var missingWindows: Set<Int> = []
 
     init(client: AeroSpaceClient, settings: AppSettings) {
         self.client = client
         self.settings = settings
         self.order = StageOrder(names: settings.stageOrder)
+        startVisibilityWatch()
+    }
+
+    /// AeroSpace sends no event when a window is minimized, and closing a window only shows up
+    /// with the next focus change. Once a second, ask the window server (local, no AeroSpace
+    /// call) whether the visible stage's windows are still on screen; if one vanished, refresh.
+    private func startVisibilityWatch() {
+        visibilityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkVisibleWindows() }
+        }
+    }
+
+    private func checkVisibleWindows() {
+        guard let active = activeWorkspace else { return }
+        let ids = Set(windows.filter { $0.workspace == active }.map(\.windowId))
+        guard !ids.isEmpty else { return }
+        let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        let onScreen = Set(list.compactMap { $0[kCGWindowNumber as String] as? Int })
+        let missing = ids.subtracting(onScreen)
+        // Refresh once per change, not every second (e.g. a window in native full screen).
+        if missing != missingWindows {
+            missingWindows = missing
+            if !missing.isEmpty { scheduleRefresh() }
+        }
     }
 
     func handle(_ event: AeroEvent) {
