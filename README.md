@@ -44,7 +44,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
   the external display, otherwise the built-in one). Other monitors such as a TV stay free.
 - Real-time updates via `aerospace subscribe`. AeroSpace reports no event for minimized
-  windows, so a lightweight once-per-second check with the window server (no AeroSpace call)
+  windows, so a lightweight check with the window server twice a second (no AeroSpace call)
   covers the visible stage.
 - **Customizable look:** background color, opacity and optional blur, title color and size,
   icon size.

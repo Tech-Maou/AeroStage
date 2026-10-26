@@ -17,7 +17,7 @@ just as well.
 - **Stay close to AeroSpace.** AeroSpace's default shortcuts and behavior are kept. If
   AeroStage is not running, AeroSpace keeps working normally.
 - **No polling of AeroSpace.** Updates come from the `aerospace subscribe` event stream. The
-  only periodic check is a local once-per-second window-server query for the visible
+  only periodic check is a local window-server query every 0.5 s for the visible
   stage's windows (see 16), because AeroSpace reports no event for minimized windows.
 - **Open source** on GitHub under the MIT license, distributed through a Homebrew tap.
 
@@ -373,9 +373,10 @@ Each phase starts with a short alignment.
 - Verified with a terminal window on stage 5 of 5: closing and minimizing both end on stage 4.
 - Minimizing sends no AeroSpace event at all, and closing often only shows up with the next
   focus change (e.g. Thunderbird minimized: nothing happened until the next click). Since
-  v0.8.4 `StateStore` checks once per second via `CGWindowListCopyWindowInfo` whether the
-  visible stage's windows are still on screen and refreshes when that set changes. It runs
-  locally without calling AeroSpace; reaction time is about 0.5–1 s.
+  v0.8.4 `StateStore` checks every 0.5 s (v0.8.5; 1 s before) via `CGWindowListCopyWindowInfo`
+  whether the visible stage's windows are still on screen and refreshes when that set
+  changes. It runs locally without calling AeroSpace; one query takes about 0.6 ms, so the
+  check costs about 0.1 % of one CPU core. Reaction time is about 0.5 s.
 
 - The layout view's canvas is the full monitor in overlay mode and the monitor minus the
   sidebar only in reserved mode (v0.8.3); before, windows of the visible stage spilled out

@@ -41,10 +41,10 @@ final class StateStore: ObservableObject {
     }
 
     /// AeroSpace sends no event when a window is minimized, and closing a window only shows up
-    /// with the next focus change. Once a second, ask the window server (local, no AeroSpace
+    /// with the next focus change. Twice a second, ask the window server (local, no AeroSpace
     /// call) whether the visible stage's windows are still on screen; if one vanished, refresh.
     private func startVisibilityWatch() {
-        visibilityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        visibilityTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkVisibleWindows() }
         }
     }
@@ -56,7 +56,7 @@ final class StateStore: ObservableObject {
         let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         let onScreen = Set(list.compactMap { $0[kCGWindowNumber as String] as? Int })
         let missing = ids.subtracting(onScreen)
-        // Refresh once per change, not every second (e.g. a window in native full screen).
+        // Refresh once per change, not on every check (e.g. a window in native full screen).
         if missing != missingWindows {
             missingWindows = missing
             if !missing.isEmpty { scheduleRefresh() }
