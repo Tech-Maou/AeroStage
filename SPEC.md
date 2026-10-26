@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 3 complete (v0.6)
+Status: **in progress**, phase 4 started (v0.7)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -138,10 +138,11 @@ In fixed mode AeroStage writes the plain AeroSpace commands instead (`workspace 
 A settings window with four tabs, reachable via `aerostage settings` and the sidebar's
 context menu:
 
-- **General:** mode (reserved/overlay, edge trigger, delay), side and width, monitor
-  priority list, numbering (dynamic/fixed); launch at login (phase 4)
-- **Appearance:** view, thumbnail refresh interval, Screen Recording status, background
-  color/opacity/blur, title color and size
+- **General:** launch AeroStage at login (`SMAppService.mainApp`), start AeroSpace at login
+  (sets `start-at-login` in the AeroSpace config), mode (reserved/overlay, edge trigger,
+  delay), side and width, monitor priority list, numbering (dynamic/fixed)
+- **Appearance:** view, thumbnail refresh interval, Screen Recording status, icon size,
+  background color/opacity/blur, title color and size
 - **Keyboard:** preset (US / International / Custom), modifier for custom, detected layout
 - **AeroSpace:** managed config on/off, gaps, path to the CLI, status
 
@@ -325,7 +326,18 @@ Each phase starts with a short alignment.
 - Layout view: AeroSpace only re-lays out a stage when it becomes visible. If the remembered
   positions of a stage are missing or overlap, its windows are drawn evenly side by side.
 
-## 14. Open
+## 14. v0.7
+
+- Launch at login for AeroStage via `SMAppService.mainApp`; if macOS asks for approval, the
+  settings link to Login Items. "Start AeroSpace at login" only rewrites the
+  `start-at-login` line of the AeroSpace config and reloads it.
+- After a restart AeroSpace starts with empty workspaces and puts all windows on one; stages
+  are deliberately not restored (same behavior as AeroSpace).
+- Larger icons: 44 pt in the icon grid, 36 pt badges on stacked thumbnails, 22 pt in the
+  layout view, all scaled by the "Icon size" setting (60–160 %).
+- Settings use their own left-aligned tab bar.
+
+## 15. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

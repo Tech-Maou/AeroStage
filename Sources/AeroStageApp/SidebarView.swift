@@ -29,6 +29,10 @@ private struct SidebarTitleSizeKey: EnvironmentKey {
     static let defaultValue: CGFloat = 14
 }
 
+private struct SidebarIconScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1
+}
+
 extension EnvironmentValues {
     var sidebarInk: Color {
         get { self[SidebarInkKey.self] }
@@ -38,6 +42,12 @@ extension EnvironmentValues {
     var sidebarTitleSize: CGFloat {
         get { self[SidebarTitleSizeKey.self] }
         set { self[SidebarTitleSizeKey.self] = newValue }
+    }
+
+    /// Scale for app icons in the grid and on thumbnails (1 = default size).
+    var sidebarIconScale: CGFloat {
+        get { self[SidebarIconScaleKey.self] }
+        set { self[SidebarIconScaleKey.self] = newValue }
     }
 }
 
@@ -85,6 +95,7 @@ struct SidebarView: View {
         .environmentObject(dragState)
         .environment(\.sidebarInk, Color(nsColor: settings.textColor))
         .environment(\.sidebarTitleSize, settings.titleSize)
+        .environment(\.sidebarIconScale, settings.iconScale)
         .contentShape(Rectangle())
         .contextMenu {
             Button("Settings …", action: actions.openSettings)
@@ -181,6 +192,8 @@ struct StageCard: View {
 
 struct WindowIconGrid: View {
     @Environment(\.sidebarInk) private var ink
+    @Environment(\.sidebarIconScale) private var iconScale
+    private var iconSize: CGFloat { 44 * iconScale }
     let windows: [AeroWindow]
     let actions: SidebarActions
     private let maxVisible = 6
@@ -192,16 +205,16 @@ struct WindowIconGrid: View {
                 .foregroundStyle(ink.opacity(0.6))
                 .frame(maxWidth: .infinity, minHeight: 30)
         } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 30, maximum: 40), spacing: 4)], alignment: .leading, spacing: 4) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: iconSize, maximum: iconSize * 1.25), spacing: 6)], alignment: .leading, spacing: 6) {
                 ForEach(windows.prefix(windows.count > maxVisible ? maxVisible - 1 : maxVisible)) { window in
-                    WindowIcon(window: window)
+                    WindowIcon(window: window, size: iconSize)
                         .windowInteractions(window, actions: actions)
                 }
                 if windows.count > maxVisible {
                     Text("+\(windows.count - maxVisible + 1)")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(ink.opacity(0.8))
-                        .frame(width: 30, height: 30)
+                        .frame(width: iconSize, height: iconSize)
                 }
             }
         }
@@ -211,6 +224,7 @@ struct WindowIconGrid: View {
 /// Window thumbnails stacked like in Stage Manager; the most recently focused window is in front.
 struct WindowStack: View {
     @Environment(\.sidebarInk) private var ink
+    @Environment(\.sidebarIconScale) private var iconScale
     let windows: [AeroWindow]
     let images: [Int: CGImage]
     let side: SidebarSide
@@ -235,7 +249,7 @@ struct WindowStack: View {
                 ZStack(alignment: corner) {
                     ForEach(layers.reversed(), id: \.element.id) { index, window in
                         let scale = 0.76 * pow(0.94, CGFloat(index))
-                        WindowThumbnail(window: window, image: images[window.windowId])
+                        WindowThumbnail(window: window, image: images[window.windowId], badgeSize: 36 * iconScale)
                             .frame(width: size.width * scale, height: size.height * scale)
                             .offset(x: direction * step.width * CGFloat(index), y: -step.height * CGFloat(index))
                             .brightness(index == 0 ? 0 : -0.06 * Double(index))
@@ -262,6 +276,7 @@ struct WindowStack: View {
 /// Windows without a known position (never visible yet) are laid out side by side.
 struct StageLayout: View {
     @Environment(\.sidebarInk) private var ink
+    @Environment(\.sidebarIconScale) private var iconScale
     let windows: [AeroWindow]
     let images: [Int: CGImage]
     let frames: [Int: CGRect]
@@ -287,7 +302,7 @@ struct StageLayout: View {
                         .fill(ink.opacity(0.08))
                     // Draw the most recently focused window (first in the list) last, i.e. on top.
                     ForEach(placed.reversed(), id: \.window.id) { item in
-                        WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 12)
+                        WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 22 * iconScale)
                             .frame(width: item.frame.width * scale, height: item.frame.height * scale)
                             .offset(x: item.frame.minX * scale, y: item.frame.minY * scale)
                             .windowInteractions(item.window, actions: actions)
@@ -339,7 +354,7 @@ struct WindowThumbnail: View {
     @Environment(\.sidebarInk) private var ink
     let window: AeroWindow
     let image: CGImage?
-    var badgeSize: CGFloat = 22
+    var badgeSize: CGFloat = 36
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 6, style: .continuous) }
 
@@ -364,7 +379,8 @@ struct WindowThumbnail: View {
                     }
             } else {
                 shape.fill(ink.opacity(0.1))
-                    .overlay(Image(nsImage: icon).resizable().frame(width: badgeSize * 1.4, height: badgeSize * 1.4))
+                    .overlay(Image(nsImage: icon).resizable().scaledToFit()
+                        .frame(maxWidth: badgeSize * 1.4, maxHeight: badgeSize * 1.4).padding(4))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -375,12 +391,13 @@ struct WindowThumbnail: View {
 
 struct WindowIcon: View {
     let window: AeroWindow
+    var size: CGFloat = 44
 
     var body: some View {
         Image(nsImage: IconCache.shared.icon(for: window))
             .resizable()
             .interpolation(.high)
-            .frame(width: 30, height: 30)
+            .frame(width: size, height: size)
             .help(window.windowTitle.isEmpty ? window.appName : "\(window.appName) – \(window.windowTitle)")
     }
 }

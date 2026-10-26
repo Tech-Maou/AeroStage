@@ -94,6 +94,16 @@ import Testing
         #expect(body.contains("    ctrl-alt-shift-7 = 'move-node-to-workspace 7'"))
     }
 
+    @Test func readsAndWritesBoolSettings() throws {
+        let text = "a = 1\nstart-at-login = false # comment\nb = 'x'"
+        #expect(ManagedConfig.boolSetting("start-at-login", in: text) == false)
+        let updated = try #require(ManagedConfig.settingBool("start-at-login", to: true, in: text))
+        #expect(updated == "a = 1\nstart-at-login = true # comment\nb = 'x'")
+        #expect(ManagedConfig.boolSetting("start-at-login", in: updated) == true)
+        #expect(ManagedConfig.settingBool("missing", to: true, in: text) == nil)
+        #expect(ManagedConfig.boolSetting("start-at-login", in: DefaultConfig.template) == false)
+    }
+
     @Test func templateHasAllBlocks() {
         #expect(ManagedConfig.replacingBlock("gaps", in: DefaultConfig.template, with: []) != nil)
         #expect(ManagedConfig.replacingBlock("stages", in: DefaultConfig.template, with: []) != nil)

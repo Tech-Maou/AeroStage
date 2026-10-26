@@ -10,6 +10,7 @@ final class StageCommands {
     var openSettings: () -> Void = {}
     var reload: () -> Void = {}
     var thumbnailStatus: () -> String = { "" }
+    var startupStatus: () -> String = { "" }
 
     init(store: StateStore, settings: AppSettings) {
         self.store = store
@@ -85,7 +86,7 @@ final class StageCommands {
     private var status: String {
         let monitor = store.sidebarMonitor?.name ?? "no sidebar monitor"
         let stages = store.stages.map { "\($0.position)=\($0.workspace)" }.joined(separator: " ")
-        return "AeroSpace \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages), \(thumbnailStatus())"
+        return "AeroSpace \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages), \(thumbnailStatus()), \(startupStatus())"
     }
 }
 

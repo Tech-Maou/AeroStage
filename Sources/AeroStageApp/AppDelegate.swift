@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let server = CommandServer()
     private let thumbnails = ThumbnailService()
     private let dragState = WindowDragState()
+    private let loginItem = LoginItem()
     private var dragTracker: WindowDragTracker!
     private var store: StateStore!
     private var events: EventStream!
@@ -33,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions)
         setUpWindowDragging(actions: actions)
         settingsWindow = SettingsWindowController { [unowned self] in
-            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails)
+            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem)
         }
 
         commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
@@ -47,6 +48,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let running = thumbnails.isRunning ? "running" : "stopped"
             return "view: \(settings.cardStyle.title) (\(running)), screen recording \(access), \(thumbnails.images.count) images, \(thumbnails.frames.count) positions, last capture \(thumbnails.lastCapture.map { String(format: "%.1f s ago", -$0.timeIntervalSinceNow) } ?? "–")"
+        }
+        commands.startupStatus = { [unowned self] in
+            loginItem.refresh()
+            let login = switch loginItem.status {
+            case .enabled: "on"
+            case .requiresApproval: "needs approval"
+            case .notRegistered: "off"
+            default: "not found"
+            }
+            config.readAeroSpaceStartAtLogin()
+            let aerospace = config.aerospaceStartsAtLogin.map { $0 ? "on" : "off" } ?? "unknown"
+            return "launch at login: \(login), AeroSpace start-at-login: \(aerospace)"
         }
         commands.reload = { [unowned self] in
             config.invalidate()

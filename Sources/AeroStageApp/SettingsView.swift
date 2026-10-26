@@ -7,6 +7,7 @@ struct SettingsView: View {
     @ObservedObject var store: StateStore
     @ObservedObject var config: ConfigManager
     @ObservedObject var thumbnails: ThumbnailService
+    @ObservedObject var loginItem: LoginItem
 
     private enum Tab: String, CaseIterable {
         case general = "General"
@@ -44,6 +45,40 @@ struct SettingsView: View {
 
     private var general: some View {
         Form {
+            Section {
+                Toggle("Launch AeroStage at login", isOn: Binding(
+                    get: { loginItem.isEnabled || loginItem.needsApproval },
+                    set: { loginItem.setEnabled($0) }))
+                if loginItem.needsApproval {
+                    LabeledContent("Needs approval") {
+                        Button("Open Login Items …") { loginItem.openLoginItemsSettings() }
+                    }
+                }
+                Toggle("Start AeroSpace at login", isOn: Binding(
+                    get: { config.aerospaceStartsAtLogin ?? false },
+                    set: { enabled in
+                        let client = store.client
+                        Task { await config.setAeroSpaceStartAtLogin(enabled, client: client) }
+                    }))
+                .disabled(config.aerospaceStartsAtLogin == nil)
+            } header: {
+                Text("Startup")
+            } footer: {
+                VStack(alignment: .leading, spacing: 2) {
+                    if let error = loginItem.lastError { Text(error) }
+                    if config.aerospaceStartsAtLogin == nil {
+                        Text("start-at-login was not found in \(config.configURL.path).")
+                    } else {
+                        Text("Sets start-at-login in your AeroSpace config.")
+                    }
+                }
+                .foregroundStyle(.secondary)
+            }
+            .onAppear {
+                loginItem.refresh()
+                config.readAeroSpaceStartAtLogin()
+            }
+
             Section {
                 Picker("Mode", selection: $settings.displayMode) {
                     ForEach(DisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -154,6 +189,15 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Icons") {
+                LabeledContent("Icon size") {
+                    HStack {
+                        Slider(value: $settings.iconScale, in: 0.6...1.6, step: 0.1)
+                        Text("\(Int(settings.iconScale * 100)) %").monospacedDigit().frame(width: 44, alignment: .trailing)
+                    }
+                }
+            }
+
             Section("Background") {
                 ColorPicker("Color", selection: colorBinding(\.backgroundColor), supportsOpacity: false)
                 LabeledContent("Opacity") {
@@ -168,12 +212,13 @@ struct SettingsView: View {
             Section {
                 ColorPicker("Color", selection: colorBinding(\.textColor), supportsOpacity: false)
                 Stepper("Size: \(Int(settings.titleSize)) pt", value: $settings.titleSize, in: 10...24, step: 1)
-                Button("Reset Colors") {
+                Button("Reset Appearance") {
                     settings.backgroundColor = .black
                     settings.backgroundOpacity = 0.3
                     settings.backgroundBlur = false
                     settings.textColor = .white
                     settings.titleSize = 14
+                    settings.iconScale = 1
                 }
             } header: {
                 Text("Titles")

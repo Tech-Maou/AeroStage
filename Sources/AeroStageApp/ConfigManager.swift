@@ -5,6 +5,8 @@ import Foundation
 @MainActor
 final class ConfigManager: ObservableObject {
     @Published private(set) var status = "Not checked yet"
+    /// `start-at-login` in the AeroSpace config; `nil` if unknown or missing.
+    @Published private(set) var aerospaceStartsAtLogin: Bool?
 
     struct Input: Equatable {
         var gaps: ManagedConfig.GapOptions
@@ -69,6 +71,30 @@ final class ConfigManager: ObservableObject {
         } catch {
             status = "Write failed: \(error.localizedDescription)"
         }
+    }
+
+    func readAeroSpaceStartAtLogin() {
+        let text = try? String(contentsOf: configURL, encoding: .utf8)
+        aerospaceStartsAtLogin = text.flatMap { ManagedConfig.boolSetting("start-at-login", in: $0) }
+    }
+
+    /// Writes `start-at-login` into the AeroSpace config; AeroSpace registers itself on reload.
+    func setAeroSpaceStartAtLogin(_ enabled: Bool, client: AeroSpaceClient) async {
+        let url = configURL
+        guard let text = try? String(contentsOf: url, encoding: .utf8),
+              let updated = ManagedConfig.settingBool("start-at-login", to: enabled, in: text)
+        else {
+            status = "start-at-login not found in \(url.path)"
+            return
+        }
+        do {
+            try updated.write(to: url, atomically: true, encoding: .utf8)
+            try? await client.reloadConfig()
+            status = "Updated start-at-login"
+        } catch {
+            status = "Write failed: \(error.localizedDescription)"
+        }
+        readAeroSpaceStartAtLogin()
     }
 
     /// Forces a rewrite on the next `apply`.

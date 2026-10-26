@@ -66,6 +66,8 @@ final class AppSettings: ObservableObject {
     @Published var textColor: NSColor { didSet { defaults.set(textColor.storedString, forKey: "textColor") } }
     /// Point size of the stage titles; the number is a bit larger.
     @Published var titleSize: Double { didSet { defaults.set(titleSize, forKey: "titleSize") } }
+    /// Scale for app icons in the sidebar, 1 = default.
+    @Published var iconScale: Double { didSet { defaults.set(iconScale, forKey: "iconScale") } }
     @Published var cardStyle: CardStyle { didSet { defaults.set(cardStyle.rawValue, forKey: "cardStyle") } }
     /// Seconds between live thumbnail refreshes; 0 = only on changes.
     @Published var thumbnailInterval: Double { didSet { defaults.set(thumbnailInterval, forKey: "thumbnailInterval") } }
@@ -96,6 +98,7 @@ final class AppSettings: ObservableObject {
         backgroundBlur = d.object(forKey: "backgroundBlur") as? Bool ?? false
         textColor = NSColor(storedString: d.string(forKey: "textColor")) ?? .white
         titleSize = d.object(forKey: "titleSize") as? Double ?? 14
+        iconScale = d.object(forKey: "iconScale") as? Double ?? 1
         cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
         thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
     }

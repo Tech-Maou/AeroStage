@@ -116,6 +116,31 @@ public enum ManagedConfig {
         return lines
     }
 
+    /// Value of a top-level boolean key such as `start-at-login`; `nil` if it is missing.
+    public static func boolSetting(_ key: String, in text: String) -> Bool? {
+        for line in text.components(separatedBy: "\n") {
+            let parts = line.split(separator: "#", maxSplits: 1)[...].first.map { $0.split(separator: "=", maxSplits: 1) } ?? []
+            guard parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces) == key else { continue }
+            switch parts[1].trimmingCharacters(in: .whitespaces) {
+            case "true": return true
+            case "false": return false
+            default: return nil
+            }
+        }
+        return nil
+    }
+
+    /// Sets a top-level boolean key, keeping any comment on the line. `nil` if the key is missing.
+    public static func settingBool(_ key: String, to value: Bool, in text: String) -> String? {
+        var lines = text.components(separatedBy: "\n")
+        guard let index = lines.firstIndex(where: {
+            $0.split(separator: "=", maxSplits: 1).first?.trimmingCharacters(in: .whitespaces) == key
+        }) else { return nil }
+        let comment = lines[index].range(of: "#").map { " " + lines[index][$0.lowerBound...] } ?? ""
+        lines[index] = "\(key) = \(value)\(comment)"
+        return lines.joined(separator: "\n")
+    }
+
     /// AeroSpace monitor patterns are regular expressions; `'` is not allowed in a TOML literal key.
     public static func monitorPattern(_ name: String) -> String {
         NSRegularExpression.escapedPattern(for: name).replacingOccurrences(of: "'", with: ".")

@@ -13,7 +13,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.6)**
+**Available (v0.7)**
 
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
@@ -42,13 +42,15 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
   the external display, otherwise the built-in one). Other monitors such as a TV stay free.
 - Real-time updates via `aerospace subscribe`, no state polling.
-- **Customizable look:** background color, opacity and optional blur, title color and size.
+- **Customizable look:** background color, opacity and optional blur, title color and size,
+  icon size.
+- **Launch at login** for AeroStage and AeroSpace, switchable in the settings.
 - Settings in four tabs: General, Appearance, Keyboard, AeroSpace.
 - No Dock icon, never steals keyboard focus.
 
 **Planned**
 
-- Phase 4: launch at login, app icon, Homebrew release
+- Phase 4: app icon, Homebrew release
 
 Details are in the [specification](SPEC.md).
 
