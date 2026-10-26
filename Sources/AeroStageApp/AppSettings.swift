@@ -19,6 +19,20 @@ enum CardStyle: String, CaseIterable {
     var usesThumbnails: Bool { self != .icons }
 }
 
+enum DisplayMode: String, CaseIterable {
+    /// Always visible, AeroSpace reserves its space.
+    case reserved
+    /// Hidden until the mouse touches the screen edge, then floats above the windows.
+    case overlay
+
+    var title: String {
+        switch self {
+        case .reserved: "Reserved (always visible)"
+        case .overlay: "Overlay (show at screen edge)"
+        }
+    }
+}
+
 /// All settings, persisted in `UserDefaults`.
 @MainActor
 final class AppSettings: ObservableObject {
@@ -40,12 +54,17 @@ final class AppSettings: ObservableObject {
     /// Empty = locate automatically.
     @Published var aerospacePath: String { didSet { defaults.set(aerospacePath, forKey: "aerospacePath") } }
     @Published var sidebarVisible: Bool { didSet { defaults.set(sidebarVisible, forKey: "sidebarVisible") } }
+    @Published var displayMode: DisplayMode { didSet { defaults.set(displayMode.rawValue, forKey: "displayMode") } }
+    @Published var edgeTrigger: Bool { didSet { defaults.set(edgeTrigger, forKey: "edgeTrigger") } }
+    /// Seconds the mouse has to rest at the screen edge before the overlay appears.
+    @Published var revealDelay: Double { didSet { defaults.set(revealDelay, forKey: "revealDelay") } }
     @Published var cardStyle: CardStyle { didSet { defaults.set(cardStyle.rawValue, forKey: "cardStyle") } }
     /// Seconds between live thumbnail refreshes; 0 = only on changes.
     @Published var thumbnailInterval: Double { didSet { defaults.set(thumbnailInterval, forKey: "thumbnailInterval") } }
 
     static let stageLimits = [5, 7, 9]
     static let thumbnailIntervals: [Double] = [1, 2, 3, 5, 10, 0]
+    static let revealDelays: [Double] = [0, 0.1, 0.2, 0.35, 0.5]
 
     init() {
         let d = defaults
@@ -63,6 +82,9 @@ final class AppSettings: ObservableObject {
         outerGap = d.object(forKey: "outerGap") as? Int ?? 8
         aerospacePath = d.string(forKey: "aerospacePath") ?? ""
         sidebarVisible = d.object(forKey: "sidebarVisible") as? Bool ?? true
+        displayMode = DisplayMode(rawValue: d.string(forKey: "displayMode") ?? "") ?? .overlay
+        edgeTrigger = d.object(forKey: "edgeTrigger") as? Bool ?? true
+        revealDelay = d.object(forKey: "revealDelay") as? Double ?? 0.1
         cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
         thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
     }

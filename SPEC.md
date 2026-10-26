@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 2 complete (v0.2)
+Status: **in progress**, phase 3 complete (v0.4)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -231,7 +231,7 @@ and the CLI at `Contents/Helpers/aerostage`.
 | **0 – Setup** ✅ | Install and configure AeroSpace, toolchain, repo. **Prototype checks:** thumbnails of hidden windows, monitor disconnect, `subscribe` events | Running AeroSpace, risks cleared |
 | **1 – Core** ✅ | Panel (reserved mode), cards with icons, clicks, `subscribe`, priority list, dynamic numbering, CLI and socket, managed config | Sidebar usable day to day |
 | **2 – Thumbnails** ✅ | ScreenCaptureKit, cache, stacked view, layout view, view switcher | Stage Manager look |
-| **3 – Overlay & mouse** | Overlay mode with edge trigger, drag & drop, "+" area, context menus | Target mode |
+| **3 – Overlay & mouse** ✅ | Overlay mode with edge trigger, drag & drop, "+" area, context menus | Target mode |
 | **4 – Polish & release** | Complete settings, launch at login, app icon, release script, Homebrew tap | Public release 1.0 |
 
 Each phase starts with a short alignment.
@@ -281,7 +281,25 @@ Each phase starts with a short alignment.
   each, so those windows overlap their neighbor slightly. Overlay mode (phase 3) frees the
   reserved space.
 
-## 11. Open
+## 11. Phase 3 (v0.4)
+
+- **Overlay is the default mode.** No gaps are reserved; a global plus a local mouse monitor
+  (no extra permission needed) watch for the cursor at the outer edge of the sidebar monitor.
+  After the reveal delay (default 100 ms) the panel slides in (160 ms), and it hides 300 ms
+  after the mouse left it (with a 20 pt margin), never while a mouse button is held (drag).
+- `aerostage toggle` in overlay mode shows the sidebar until it is toggled again, a stage or
+  window is chosen, a workspace change happens, or the mouse visits and leaves it. In
+  reserved mode it switches the sidebar off and on as before.
+- While the overlay is hidden, thumbnails are only captured on changes; showing it triggers
+  an immediate capture and resumes the live interval.
+- Drag & drop uses the window ID as a string payload: drop on a card →
+  `move-node-to-workspace`, drop on "New Stage" → the next free stage name. Clicking "New
+  Stage" opens an empty stage.
+- Context menus: window → focus, move to current stage, move to new stage, close
+  (`aerospace close --window-id`); card → switch, close stage (all windows; apps still ask
+  about unsaved changes).
+
+## 12. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

@@ -7,6 +7,13 @@ import SwiftUI
 struct SidebarActions {
     var focusWorkspace: (String) -> Void
     var focusWindow: (Int) -> Void
+    var moveWindow: (Int, String) -> Void
+    var moveWindowToCurrentStage: (Int) -> Void
+    var moveWindowToNewStage: (Int) -> Void
+    var newStage: () -> Void
+    var closeWindow: (Int) -> Void
+    var closeStage: (String) -> Void
+    var canAddStage: () -> Bool
     var openSettings: () -> Void
     var hideSidebar: () -> Void
     var quit: () -> Void
@@ -29,6 +36,9 @@ struct SidebarView: View {
                 StageCard(stage: stage, label: stage.label(for: settings.numbering), side: settings.side,
                           style: style, thumbnails: thumbnails, actions: actions)
             }
+            if actions.canAddStage() {
+                NewStageZone(actions: actions)
+            }
             if !store.isConnected {
                 Label("AeroSpace not reachable", systemImage: "exclamationmark.triangle")
                     .font(.caption)
@@ -46,6 +56,9 @@ struct SidebarView: View {
             Picker("View", selection: $settings.cardStyle) {
                 ForEach(CardStyle.allCases, id: \.self) { Text($0.title).tag($0) }
             }
+            Picker("Mode", selection: $settings.displayMode) {
+                ForEach(DisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
             Button("Hide Sidebar", action: actions.hideSidebar)
             Divider()
             Button("Quit AeroStage", action: actions.quit)
@@ -62,6 +75,7 @@ struct StageCard: View {
     @ObservedObject var thumbnails: ThumbnailService
     let actions: SidebarActions
     @State private var hovering = false
+    @State private var dropTargeted = false
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 10, style: .continuous) }
 
@@ -84,9 +98,23 @@ struct StageCard: View {
         .padding(6)
         .background(shape.fill(fill))
         .overlay(shape.strokeBorder(stage.isFocused ? Color.accentColor : .clear, lineWidth: 2))
+        .overlay(shape.strokeBorder(Color.accentColor.opacity(dropTargeted ? 0.8 : 0), style: StrokeStyle(lineWidth: 2, dash: [5, 3])))
         .contentShape(shape)
         .onTapGesture { actions.focusWorkspace(stage.workspace) }
         .onHover { hovering = $0 }
+        .dropDestination(for: String.self) { items, _ in
+            let ids = items.compactMap(Int.init).filter { id in !stage.windows.contains { $0.windowId == id } }
+            ids.forEach { actions.moveWindow($0, stage.workspace) }
+            return !ids.isEmpty
+        } isTargeted: { dropTargeted = $0 }
+        .contextMenu {
+            Button("Switch to Stage") { actions.focusWorkspace(stage.workspace) }
+            Divider()
+            Button(stage.windows.count == 1 ? "Close Stage (1 Window)" : "Close Stage (\(stage.windows.count) Windows)") {
+                actions.closeStage(stage.workspace)
+            }
+            .disabled(stage.windows.isEmpty)
+        }
         .animation(.easeOut(duration: 0.12), value: stage.isFocused)
         .animation(.easeOut(duration: 0.12), value: hovering)
     }
@@ -123,7 +151,7 @@ struct WindowIconGrid: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 30, maximum: 40), spacing: 4)], alignment: .leading, spacing: 4) {
                 ForEach(windows.prefix(windows.count > maxVisible ? maxVisible - 1 : maxVisible)) { window in
                     WindowIcon(window: window)
-                        .onTapGesture { actions.focusWindow(window.windowId) }
+                        .windowInteractions(window, actions: actions)
                 }
                 if windows.count > maxVisible {
                     Text("+\(windows.count - maxVisible + 1)")
@@ -166,7 +194,7 @@ struct WindowStack: View {
                             .frame(width: size.width * scale, height: size.height * scale)
                             .offset(x: direction * step.width * CGFloat(index), y: -step.height * CGFloat(index))
                             .brightness(index == 0 ? 0 : -0.06 * Double(index))
-                            .onTapGesture { actions.focusWindow(window.windowId) }
+                            .windowInteractions(window, actions: actions)
                     }
                 }
                 .frame(width: size.width, height: size.height, alignment: corner)
@@ -216,7 +244,7 @@ struct StageLayout: View {
                         WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 12)
                             .frame(width: item.frame.width * scale, height: item.frame.height * scale)
                             .offset(x: item.frame.minX * scale, y: item.frame.minY * scale)
-                            .onTapGesture { actions.focusWindow(item.window.windowId) }
+                            .windowInteractions(item.window, actions: actions)
                     }
                 }
             }
@@ -314,4 +342,51 @@ struct VisualEffectBackground: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+/// Drop target and button at the end of the sidebar: drop a window here for a new stage,
+/// click to open an empty one.
+struct NewStageZone: View {
+    let actions: SidebarActions
+    @State private var targeted = false
+    @State private var hovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        Label("New Stage", systemImage: "plus")
+            .font(.system(size: 11, weight: .medium, design: .rounded))
+            .foregroundStyle(targeted ? Color.accentColor : .secondary)
+            .frame(maxWidth: .infinity, minHeight: targeted ? 56 : 30)
+            .background(shape.fill(Color.primary.opacity(targeted ? 0.1 : hovering ? 0.06 : 0.02)))
+            .overlay(shape.strokeBorder(targeted ? Color.accentColor : Color.primary.opacity(0.15),
+                                        style: StrokeStyle(lineWidth: 1.5, dash: [5, 3])))
+            .contentShape(shape)
+            .onTapGesture { actions.newStage() }
+            .onHover { hovering = $0 }
+            .dropDestination(for: String.self) { items, _ in
+                items.compactMap(Int.init).forEach(actions.moveWindowToNewStage)
+                return true
+            } isTargeted: { targeted = $0 }
+            .animation(.easeOut(duration: 0.12), value: targeted)
+            .help("Drop a window here to put it on a new stage")
+    }
+}
+
+extension View {
+    /// Click to focus, drag to another stage, context menu: shared by thumbnails and icons.
+    func windowInteractions(_ window: AeroWindow, actions: SidebarActions) -> some View {
+        onTapGesture { actions.focusWindow(window.windowId) }
+            .draggable(String(window.windowId)) {
+                Image(nsImage: IconCache.shared.icon(for: window))
+                    .resizable()
+                    .frame(width: 40, height: 40)
+            }
+            .contextMenu {
+                Button("Focus Window") { actions.focusWindow(window.windowId) }
+                Button("Move to Current Stage") { actions.moveWindowToCurrentStage(window.windowId) }
+                Button("Move to New Stage") { actions.moveWindowToNewStage(window.windowId) }
+                Divider()
+                Button("Close Window") { actions.closeWindow(window.windowId) }
+            }
+    }
 }

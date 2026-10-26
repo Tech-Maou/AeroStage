@@ -32,7 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails)
         }
 
-        commands.toggleSidebar = { [unowned self] in settings.sidebarVisible.toggle() }
+        commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
+        sidebar.onVisibilityChange = { [unowned self] _ in updateThumbnails() }
         commands.openSettings = { [unowned self] in settingsWindow.show() }
         commands.thumbnailStatus = { [unowned self] in
             let access = switch thumbnails.access {
@@ -73,16 +74,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeActions() -> SidebarActions {
         SidebarActions(
-            focusWorkspace: { [unowned self] name in run { try await $0.workspace(name) } },
-            focusWindow: { [unowned self] id in run { try await $0.focus(windowId: id) } },
+            focusWorkspace: { [unowned self] name in
+                run(dismiss: true) { try await $0.workspace(name) }
+            },
+            focusWindow: { [unowned self] id in
+                run(dismiss: true) { try await $0.focus(windowId: id) }
+            },
+            moveWindow: { [unowned self] id, workspace in
+                run { try await $0.moveWindow(id, to: workspace) }
+            },
+            moveWindowToCurrentStage: { [unowned self] id in
+                guard let current = store.activeWorkspace else { return }
+                run { try await $0.moveWindow(id, to: current) }
+            },
+            moveWindowToNewStage: { [unowned self] id in
+                guard let name = commands.newStageName() else { return NSSound.beep() }
+                run { try await $0.moveWindow(id, to: name) }
+            },
+            newStage: { [unowned self] in
+                guard let name = commands.newStageName() else { return NSSound.beep() }
+                run(dismiss: true) { try await $0.workspace(name) }
+            },
+            closeWindow: { [unowned self] id in
+                run { try await $0.close(windowId: id) }
+            },
+            closeStage: { [unowned self] workspace in
+                let ids = store.stages.first { $0.workspace == workspace }?.windows.map(\.windowId) ?? []
+                run { client in
+                    for id in ids { try? await client.close(windowId: id) }
+                }
+            },
+            canAddStage: { [unowned self] in commands.newStageName() != nil },
             openSettings: { [unowned self] in settingsWindow.show() },
             hideSidebar: { [unowned self] in settings.sidebarVisible = false },
             quit: { NSApp.terminate(nil) }
         )
     }
 
-    private func run(_ action: @escaping @Sendable (AeroSpaceClient) async throws -> Void) {
+    /// Runs an AeroSpace command; `dismiss` hides the overlay afterwards (a stage or window was chosen).
+    private func run(dismiss: Bool = false, _ action: @escaping @Sendable (AeroSpaceClient) async throws -> Void) {
         let client = store.client
+        if dismiss { sidebar.dismissOverlay() }
         Task {
             do { try await action(client) } catch { NSLog("AeroStage: \(error)") }
             store.scheduleRefresh()
@@ -92,7 +124,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startEvents(executable: String) {
         events?.stop()
         events = EventStream(executable: executable)
-        events.onEvent = { [unowned self] in store.handle($0) }
+        events.onEvent = { [unowned self] event in
+            store.handle(event)
+            // A stage chosen by keyboard while the overlay was opened by shortcut: get out of the way.
+            if event.kind == .focusedWorkspaceChanged { sidebar.dismissOverlay() }
+        }
         events.onConnectionChange = { [unowned self] connected in
             if connected { store.scheduleRefresh() }
         }
@@ -160,7 +196,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             thumbnails.stop()
             return
         }
-        thumbnails.interval = settings.thumbnailInterval > 0 ? .seconds(settings.thumbnailInterval) : nil
+        // A hidden overlay only captures on changes, so thumbnails are ready when it appears.
+        let live = sidebar.isShown && settings.thumbnailInterval > 0
+        let interval: Duration? = live ? .seconds(settings.thumbnailInterval) : nil
+        if interval != thumbnails.interval || (sidebar.isShown && !thumbnails.isRunning) {
+            thumbnails.interval = interval
+            thumbnails.refreshNow()
+        }
         thumbnails.targetWidth = sidebar.width(on: screen) * 2.5
         thumbnails.canvas = windowArea(on: screen)
         let stages = store.stages.sorted { $0.isFocused && !$1.isFocused }
@@ -183,7 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             gaps: .init(
                 inner: settings.innerGap,
                 outer: settings.outerGap,
-                sidebarMonitor: settings.sidebarVisible ? store.sidebarMonitor?.name : nil,
+                sidebarMonitor: settings.sidebarVisible && settings.displayMode == .reserved ? store.sidebarMonitor?.name : nil,
                 side: settings.side,
                 sidebarGap: screen.map { sidebar.reservedGap(on: $0) } ?? 0),
             bindings: .init(

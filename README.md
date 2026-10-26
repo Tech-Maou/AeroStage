@@ -13,10 +13,15 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.2)**
+**Available (v0.4)**
 
-- Sidebar on the left or right, always visible. AeroSpace keeps its space free via gaps, on
-  the sidebar's monitor only.
+- Two modes:
+  - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
+    (or via shortcut), floats above your windows and hides again when the mouse leaves.
+    Windows keep the full screen width.
+  - **Reserved:** the sidebar is always visible and AeroSpace keeps its space free via
+    gaps, on the sidebar's monitor only.
+- Sidebar on the left or right.
 - One card per stage with **live window thumbnails**, also for stages in the background.
   Three views:
   - **Stacked Thumbnails** like in Stage Manager, the most recently used window in front
@@ -25,6 +30,10 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 - Each card has a header with its number and apps, e.g. **"1.** Firefox, Mail, Code". The
   active stage is highlighted.
 - Click a card to switch stages, click a thumbnail or icon to focus exactly that window.
+- **Drag & drop** a window onto another card to move it there, or onto **New Stage** to put
+  it on a new stage. Clicking **New Stage** opens an empty one.
+- **Context menus:** right-click a window to focus it, move it to the current or a new stage,
+  or close it; right-click a card to switch to or close the whole stage.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
   the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
@@ -34,9 +43,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 **Planned**
 
-- Phase 3: overlay mode (the sidebar slides in at the screen edge and floats above the
-  windows), drag & drop between stages, context menus
-- Phase 4: launch at login, complete settings, Homebrew release
+- Phase 4: launch at login, app icon, Homebrew release
 
 Details are in the [specification](SPEC.md).
 
@@ -123,7 +130,7 @@ On first launch AeroStage picks the preset that matches your current keyboard la
 | `mod-shift-1` … `5` | Move the focused window to the stage at position n |
 | `mod-n` | Move the window to a new stage and follow it |
 | `alt-tab` / `alt-shift-tab` | Next / previous stage |
-| `mod-s` | Show or hide the sidebar |
+| `mod-s` | Show or hide the sidebar (overlay: show until a stage is chosen) |
 
 All other AeroSpace default shortcuts are kept with the same modifier: `mod-h/j/k/l` focus,
 `mod-shift-h/j/k/l` move, `mod-slash`/`mod-comma` layouts, `mod-minus`/`mod-equal` resize,
@@ -168,9 +175,9 @@ Accessibility permission of its own.
 ## Known limitations
 
 - Some apps cannot be made narrower than a certain width (Firefox, for example, ~600 pt). With
-  many windows side by side next to the reserved sidebar, such windows overlap their
-  neighbor slightly. This is AeroSpace behavior with minimum window sizes. Use the accordion
-  layout (`mod-comma`), hide the sidebar (`mod-s`) or, once available, overlay mode.
+  many windows side by side, such windows overlap their neighbor slightly. This is AeroSpace
+  behavior with minimum window sizes and happens sooner in reserved mode. Use overlay mode or
+  the accordion layout (`mod-comma`).
 
 ## Uninstall
 

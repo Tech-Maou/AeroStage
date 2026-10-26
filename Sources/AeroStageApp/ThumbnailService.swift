@@ -45,6 +45,11 @@ final class ThumbnailService: ObservableObject {
         if changed || loop == nil { restart() }
     }
 
+    /// Captures right away and continues with the current interval.
+    func refreshNow() {
+        restart()
+    }
+
     func stop() {
         loop?.cancel()
         loop = nil

@@ -74,6 +74,10 @@ struct AeroSpaceClient: Sendable {
         _ = try await run(args)
     }
 
+    func close(windowId: Int) async throws {
+        _ = try await run(["close", "--window-id", String(windowId)])
+    }
+
     func reloadConfig() async throws {
         _ = try await run(["reload-config"])
     }

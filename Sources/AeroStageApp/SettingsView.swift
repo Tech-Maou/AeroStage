@@ -10,6 +10,28 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                Picker("Mode", selection: $settings.displayMode) {
+                    ForEach(DisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                if settings.displayMode == .overlay {
+                    Toggle("Show when the mouse touches the screen edge", isOn: $settings.edgeTrigger)
+                    Picker("Delay", selection: $settings.revealDelay) {
+                        ForEach(AppSettings.revealDelays, id: \.self) { delay in
+                            Text(delay == 0 ? "None" : "\(Int(delay * 1000)) ms").tag(delay)
+                        }
+                    }
+                    .disabled(!settings.edgeTrigger)
+                }
+            } header: {
+                Text("Mode")
+            } footer: {
+                Text(settings.displayMode == .overlay
+                     ? "The sidebar floats above your windows and hides when the mouse leaves it. Windows get the full screen width. \(settings.modifier)-s shows it too."
+                     : "The sidebar is always visible and AeroSpace keeps its space free.")
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Appearance") {
                 Picker("Side", selection: $settings.side) {
                     Text("Left").tag(SidebarSide.left)

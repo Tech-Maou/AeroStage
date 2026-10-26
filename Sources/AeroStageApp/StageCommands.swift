@@ -36,10 +36,10 @@ final class StageCommands {
             guard let target = try target(at: request.position) else { return .success }
             try await client.moveWindow(to: target)
         case .new:
-            guard store.stages.count < settings.maxStages else {
+            guard let name = newStageName() else {
                 return .failure("At most \(settings.maxStages) stages")
             }
-            try await client.moveWindow(to: newStageName(), follow: true)
+            try await client.moveWindow(to: name, follow: true)
         case .next, .prev:
             let offset = request.command == .next ? 1 : -1
             if let target = store.order.neighbor(of: store.activeWorkspace, offset: offset),
@@ -67,15 +67,17 @@ final class StageCommands {
     private func target(at position: Int?) throws -> String? {
         guard let position, position >= 1 else { throw CommandError("Missing position") }
         if let name = store.order.name(atPosition: position) { return name }
-        guard position == store.stages.count + 1, store.stages.count < settings.maxStages else {
+        guard position == store.stages.count + 1, let name = newStageName() else {
             NSSound.beep()
             return nil
         }
-        return newStageName()
+        return name
     }
 
-    private func newStageName() -> String {
-        settings.numbering == .fixed
+    /// Workspace name for a new stage; `nil` when the maximum is reached.
+    func newStageName() -> String? {
+        guard store.stages.count < settings.maxStages else { return nil }
+        return settings.numbering == .fixed
             ? String(store.stages.count + 1)
             : StageOrder.nextFreeName(excluding: store.allWorkspaces)
     }
