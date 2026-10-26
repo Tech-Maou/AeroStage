@@ -336,6 +336,8 @@ Each phase starts with a short alignment.
 - Larger icons: 44 pt in the icon grid, 36 pt badges on stacked thumbnails, 22 pt in the
   layout view, all scaled by the "Icon size" setting (60–160 %).
 - Settings use their own left-aligned tab bar.
+- The overlay stays open while one of its context menus (or a submenu) is open, tracked via
+  `NSMenu` begin/end tracking notifications; afterwards the mouse position decides again.
 
 ## 15. Open
 

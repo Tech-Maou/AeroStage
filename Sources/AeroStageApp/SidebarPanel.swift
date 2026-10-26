@@ -44,6 +44,11 @@ final class SidebarController {
     private var mouseWasInside = false
     /// Shown because a window is being dragged towards the sidebar.
     private var revealedByWindowDrag = false
+    /// A context menu of the sidebar is open; the menu extends beyond the panel, so leaving
+    /// the panel must not hide it.
+    private var openMenus = 0
+    private var menuOpen: Bool { openMenus > 0 }
+    private var menuObservers: [NSObjectProtocol] = []
 
     private(set) var isShown = false
     var onVisibilityChange: ((Bool) -> Void)?
@@ -51,6 +56,7 @@ final class SidebarController {
     init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, dragState: WindowDragState, actions: SidebarActions) {
         self.settings = settings
         panel.acceptsMouseMovedEvents = true
+        observeMenus()
         panel.contentView = FirstMouseHostingView(
             rootView: SidebarView(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions))
     }
@@ -259,12 +265,35 @@ final class SidebarController {
         }
 
         let near = panel.frame.insetBy(dx: -20, dy: -20).contains(point) || atEdge
-        if near {
+        if near || menuOpen {
             mouseWasInside = true
             cancelHide()
         } else if (mouseWasInside || !pinned) && NSEvent.pressedMouseButtons == 0 {
             scheduleHide()
         }
+    }
+
+    private func observeMenus() {
+        let center = NotificationCenter.default
+        menuObservers = [
+            center.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    // Submenus (e.g. "View") send their own begin/end, hence a counter.
+                    guard let self, self.isShown || self.menuOpen else { return }
+                    self.openMenus += 1
+                    self.cancelHide()
+                }
+            },
+            center.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.menuOpen else { return }
+                    self.openMenus -= 1
+                    guard !self.menuOpen else { return }
+                    // Re-check where the mouse is now: outside, the overlay hides as usual.
+                    self.mouseMoved(to: NSEvent.mouseLocation)
+                }
+            },
+        ]
     }
 
     private func scheduleReveal() {
