@@ -42,15 +42,17 @@ final class SidebarController {
     /// Shown via shortcut: stays until toggled, a stage is chosen, or the mouse visited and left.
     private var pinned = false
     private var mouseWasInside = false
+    /// Shown because a window is being dragged towards the sidebar.
+    private var revealedByWindowDrag = false
 
     private(set) var isShown = false
     var onVisibilityChange: ((Bool) -> Void)?
 
-    init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, actions: SidebarActions) {
+    init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, dragState: WindowDragState, actions: SidebarActions) {
         self.settings = settings
         panel.acceptsMouseMovedEvents = true
         panel.contentView = FirstMouseHostingView(
-            rootView: SidebarView(store: store, settings: settings, thumbnails: thumbnails, actions: actions))
+            rootView: SidebarView(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions))
     }
 
     var isOverlay: Bool { settings.displayMode == .overlay }
@@ -76,7 +78,7 @@ final class SidebarController {
         panel.setFrame(frame(on: screen), display: true)
         if isOverlay {
             startMouseTracking()
-            if isShown { panel.orderFrontRegardless() } else { panel.orderOut(nil) }
+            if isShown { panel.orderFrontRegardless() } else { park() }
         } else {
             stopMouseTracking()
             setShown(true, animated: false)
@@ -92,6 +94,33 @@ final class SidebarController {
         } else {
             settings.sidebarVisible.toggle()
         }
+    }
+
+    /// Frame of the panel while it is on screen, for hit testing dragged windows.
+    var visibleFrame: NSRect? {
+        panel.isVisible && isShown ? panel.frame : nil
+    }
+
+    /// A window is dragged: the overlay appears as soon as the cursor reaches the edge.
+    func windowDragMoved(to point: NSPoint) {
+        guard isOverlay, !isShown, isAtEdge(point) else { return }
+        revealedByWindowDrag = true
+        pinned = true
+        setShown(true, animated: true)
+    }
+
+    func windowDragEnded() {
+        guard revealedByWindowDrag else { return }
+        revealedByWindowDrag = false
+        dismissOverlay()
+    }
+
+    private func isAtEdge(_ point: NSPoint) -> Bool {
+        guard let screen else { return false }
+        let bounds = screen.frame
+        guard point.y >= bounds.minY, point.y <= bounds.maxY else { return false }
+        // During a window drag the cursor rarely hits the last pixel, so allow a few points.
+        return settings.side == .right ? point.x >= bounds.maxX - 6 : point.x <= bounds.minX + 5
     }
 
     /// After choosing a stage or window: the overlay gets out of the way.
@@ -127,7 +156,7 @@ final class SidebarController {
         if !shown { pinned = false; mouseWasInside = false }
 
         guard let screen else {
-            panel.orderOut(nil)
+            removeFromScreen()
             onVisibilityChange?(isShown)
             return
         }
@@ -137,6 +166,7 @@ final class SidebarController {
         let away = target.offsetBy(dx: offset, dy: 0)
 
         if shown {
+            panel.ignoresMouseEvents = false
             if animated {
                 panel.alphaValue = 0
                 panel.setFrame(away, display: false)
@@ -161,14 +191,33 @@ final class SidebarController {
             }, completionHandler: { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self, !self.isShown else { return }
-                    self.panel.orderOut(nil)
-                    self.panel.alphaValue = 1
+                    self.hideCompletely()
                 }
             })
         } else {
-            panel.orderOut(nil)
+            hideCompletely()
         }
         onVisibilityChange?(isShown)
+    }
+
+    /// A hidden overlay stays on screen, transparent and click-through. That keeps SwiftUI
+    /// laying out the cards, so the drop targets for dragged windows are always current.
+    private func park() {
+        guard let screen else { return removeFromScreen() }
+        panel.ignoresMouseEvents = true
+        panel.alphaValue = 0
+        panel.setFrame(frame(on: screen), display: true)
+        panel.orderFrontRegardless()
+    }
+
+    private func removeFromScreen() {
+        panel.orderOut(nil)
+        panel.alphaValue = 1
+        panel.ignoresMouseEvents = false
+    }
+
+    private func hideCompletely() {
+        if isOverlay, settings.sidebarVisible { park() } else { removeFromScreen() }
     }
 
     // MARK: Overlay edge trigger

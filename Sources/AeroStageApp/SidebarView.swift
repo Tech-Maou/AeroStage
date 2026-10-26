@@ -45,6 +45,7 @@ struct SidebarView: View {
     @ObservedObject var store: StateStore
     @ObservedObject var settings: AppSettings
     @ObservedObject var thumbnails: ThumbnailService
+    let dragState: WindowDragState
     let actions: SidebarActions
 
     /// Thumbnails only with permission, icons otherwise.
@@ -78,6 +79,10 @@ struct SidebarView: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+        .onPreferenceChange(DropFramesKey.self) { frames in
+            MainActor.assumeIsolated { dragState.frames = frames }
+        }
+        .environmentObject(dragState)
         .environment(\.sidebarInk, Color(nsColor: settings.textColor))
         .environment(\.sidebarTitleSize, settings.titleSize)
         .contentShape(Rectangle())
@@ -108,6 +113,10 @@ struct StageCard: View {
     let actions: SidebarActions
     @State private var hovering = false
     @State private var dropTargeted = false
+    @EnvironmentObject private var dragState: WindowDragState
+
+    /// A thumbnail or a real window is hovering over this card.
+    private var highlighted: Bool { dropTargeted || dragState.hovered == .stage(stage.workspace) }
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 10, style: .continuous) }
 
@@ -130,7 +139,8 @@ struct StageCard: View {
         .padding(6)
         .background(shape.fill(fill))
         .overlay(shape.strokeBorder(stage.isFocused ? Color.accentColor : .clear, lineWidth: 2))
-        .overlay(shape.strokeBorder(Color.accentColor.opacity(dropTargeted ? 0.8 : 0), style: StrokeStyle(lineWidth: 2, dash: [5, 3])))
+        .overlay(shape.strokeBorder(Color.accentColor.opacity(highlighted ? 0.8 : 0), style: StrokeStyle(lineWidth: 2, dash: [5, 3])))
+        .windowDropTarget(.stage(stage.workspace))
         .contentShape(shape)
         .onTapGesture { actions.focusWorkspace(stage.workspace) }
         .onHover { hovering = $0 }
@@ -288,14 +298,39 @@ struct StageLayout: View {
         }
     }
 
+    /// Real positions while they are consistent. AeroSpace only re-lays out a stage when it
+    /// becomes visible, so after a window was moved to a hidden stage the remembered positions
+    /// are stale (missing or overlapping). Then the windows are split evenly side by side,
+    /// like AeroSpace's default tiling will arrange them.
     private func placements() -> [(window: AeroWindow, frame: CGRect)] {
-        let unknown = windows.filter { frames[$0.windowId] == nil }
-        let width = canvas.width / CGFloat(max(unknown.count, 1))
-        return windows.map { window in
-            if let frame = frames[window.windowId] { return (window, frame) }
-            let index = CGFloat(unknown.firstIndex(of: window) ?? 0)
-            return (window, CGRect(x: index * width, y: 0, width: width, height: canvas.height).insetBy(dx: 8, dy: 8))
+        let known = windows.compactMap { window in frames[window.windowId].map { (window, $0) } }
+        if known.count == windows.count, !overlaps(known.map(\.1)) {
+            return known
         }
+        // Keep the remembered left-to-right order, windows without a position at the end.
+        let ordered = windows.sorted { a, b in
+            switch (frames[a.windowId], frames[b.windowId]) {
+            case let (x?, y?): x.minX < y.minX
+            case (_?, nil): true
+            default: false
+            }
+        }
+        let width = canvas.width / CGFloat(ordered.count)
+        return ordered.enumerated().map { index, window in
+            (window, CGRect(x: CGFloat(index) * width, y: 0, width: width, height: canvas.height).insetBy(dx: 8, dy: 8))
+        }
+    }
+
+    private func overlaps(_ rects: [CGRect]) -> Bool {
+        for (i, a) in rects.enumerated() {
+            for b in rects[(i + 1)...] {
+                let overlap = a.intersection(b)
+                guard !overlap.isNull else { continue }
+                let smaller = min(a.width * a.height, b.width * b.height)
+                if overlap.width * overlap.height > 0.1 * smaller { return true }
+            }
+        }
+        return false
     }
 }
 
@@ -386,7 +421,10 @@ struct VisualEffectBackground: NSViewRepresentable {
 struct NewStageZone: View {
     @Environment(\.sidebarInk) private var ink
     let actions: SidebarActions
-    @State private var targeted = false
+    @State private var dropTargeted = false
+    @EnvironmentObject private var dragState: WindowDragState
+
+    private var targeted: Bool { dropTargeted || dragState.hovered == .newStage }
     @State private var hovering = false
 
     var body: some View {
@@ -404,7 +442,8 @@ struct NewStageZone: View {
             .dropDestination(for: String.self) { items, _ in
                 items.compactMap(Int.init).forEach(actions.moveWindowToNewStage)
                 return true
-            } isTargeted: { targeted = $0 }
+            } isTargeted: { dropTargeted = $0 }
+            .windowDropTarget(.newStage)
             .animation(.easeOut(duration: 0.12), value: targeted)
             .help("Drop a window here to put it on a new stage")
     }

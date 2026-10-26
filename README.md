@@ -13,7 +13,7 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v0.5)**
+**Available (v0.6)**
 
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
@@ -33,6 +33,8 @@ keyboard through AeroSpace, but clicking a stage or a window works just as well.
 - **Drag & drop** a window onto another card to move it there, or onto **New Stage** to put
   it on a new stage. Clicking **New Stage** opens an empty one. Moved windows are tiled, so
   the target stage splits like any other.
+- **Drag real windows:** grab a window by its title bar and drag it to the screen edge. The
+  sidebar slides out, and dropping the window on a card or on **New Stage** moves it there.
 - **Context menus:** right-click a window to focus it, move it to the current or a new stage,
   toggle floating/tiling, or close it; right-click a card to switch to or close the whole stage.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and

@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 3 complete (v0.5)
+Status: **in progress**, phase 3 complete (v0.6)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -309,7 +309,23 @@ Each phase starts with a short alignment.
 - Appearance settings (colors, opacity, blur, title size), settings grouped in tabs, the
   stage maximum is fixed at 5.
 
-## 13. Open
+## 13. v0.6: dragging real windows onto the sidebar
+
+- `WindowDragTracker`: a global mouse-down monitor remembers the window under the cursor
+  (CG window list, AeroSpace-managed windows only). While the button is held, a 30 Hz timer
+  polls the cursor, because other apps' window drags are not reliably delivered as drag
+  events. Only a window that actually moves (> 6 pt) counts as a drag.
+- In overlay mode the sidebar slides out as soon as the cursor is within 6 pt of the edge.
+  The card or "New Stage" under the cursor is highlighted (hit test by height, including the
+  margin up to the screen edge). On release over a target, the window is moved and tiled
+  150 ms later, after AeroSpace has handled the mouse-up itself.
+- Drop targets report their frames via a SwiftUI preference. A hidden overlay therefore stays
+  on screen transparent and click-through (alpha 0, `ignoresMouseEvents`) instead of being
+  ordered out, so SwiftUI keeps the card frames current.
+- Layout view: AeroSpace only re-lays out a stage when it becomes visible. If the remembered
+  positions of a stage are missing or overlap, its windows are drawn evenly side by side.
+
+## 14. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

@@ -74,7 +74,17 @@ final class StateStore: ObservableObject {
         restage()
     }
 
-    /// After the priority list or the monitor setup changed.
+    /// Whether AeroSpace manages this window (a dragged window has to be one of them).
+    func manages(windowId: Int) -> Bool {
+        windows.contains { $0.windowId == windowId }
+    }
+
+    /// Workspace a window currently lives on.
+    func workspace(ofWindow windowId: Int) -> String? {
+        windows.first { $0.windowId == windowId }?.workspace
+    }
+
+        /// After the priority list or the monitor setup changed.
     func resolveSidebarTarget() {
         let screen = MonitorResolver.resolveScreen(priority: settings.monitorPriority)
         let monitor = screen.flatMap { MonitorResolver.aeroMonitor(for: $0, in: monitors) }

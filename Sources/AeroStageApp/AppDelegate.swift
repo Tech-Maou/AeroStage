@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let config = ConfigManager()
     private let server = CommandServer()
     private let thumbnails = ThumbnailService()
+    private let dragState = WindowDragState()
+    private var dragTracker: WindowDragTracker!
     private var store: StateStore!
     private var events: EventStream!
     private var sidebar: SidebarController!
@@ -27,7 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let client = makeClient()
         store = StateStore(client: client, settings: settings)
         commands = StageCommands(store: store, settings: settings)
-        sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, actions: makeActions())
+        let actions = makeActions()
+        sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions)
+        setUpWindowDragging(actions: actions)
         settingsWindow = SettingsWindowController { [unowned self] in
             SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails)
         }
@@ -114,6 +118,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hideSidebar: { [unowned self] in settings.sidebarVisible = false },
             quit: { NSApp.terminate(nil) }
         )
+    }
+
+    /// Grab a real window and drop it onto a stage card or "New Stage" in the sidebar.
+    private func setUpWindowDragging(actions: SidebarActions) {
+        dragTracker = WindowDragTracker(
+            state: dragState,
+            panelFrame: { [unowned self] in sidebar.visibleFrame },
+            isManaged: { [unowned self] in store.manages(windowId: $0) })
+        dragTracker.onDragMove = { [unowned self] in sidebar.windowDragMoved(to: $0) }
+        dragTracker.onDragEnd = { [unowned self] in sidebar.windowDragEnded() }
+        dragTracker.onDrop = { [unowned self] id, target in
+            // Let AeroSpace finish its own handling of the mouse-up first.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
+                switch target {
+                case .stage(let workspace):
+                    if store.workspace(ofWindow: id) != workspace { actions.moveWindow(id, workspace) }
+                case .newStage:
+                    actions.moveWindowToNewStage(id)
+                }
+            }
+        }
+        dragTracker.start()
     }
 
     /// Runs an AeroSpace command; `dismiss` hides the overlay afterwards (a stage or window was chosen).
