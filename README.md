@@ -10,8 +10,8 @@ the window manager, but clicking a stage or a window works just as well.
 > [!IMPORTANT]
 > AeroStage only runs reliably with **[AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM)**,
 > our fork of AeroSpace (see [Why AeroStage WM?](#why-aerostage-wm)). It still starts with the
-> original AeroSpace, but some changes (closed or minimized windows, emptied stages) are then
-> only noticed with a delay or by a fallback check.
+> original AeroSpace, but closed, minimized and moved windows are then only noticed by a
+> fallback check. `aerostage status` shows which mode is active.
 
 > [!NOTE]
 > AeroStage and AeroStage WM are **unofficial**. They are not part of AeroSpace and not
@@ -49,9 +49,9 @@ the window manager, but clicking a stage or a window works just as well.
   shows the stage above it (or the next one if it was the first).
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.
   the external display, otherwise the built-in one). Other monitors such as a TV stay free.
-- Real-time updates via `aerospace subscribe`. AeroSpace reports no event for minimized
-  windows, so a lightweight check with the window server twice a second (no AeroSpace call)
-  covers the visible stage.
+- Real-time updates via the window manager's `subscribe` event stream. With AeroStage WM
+  closed, minimized and moved windows arrive as events (`workspace-windows-changed`); with
+  plain AeroSpace a lightweight window-server check twice a second covers the visible stage.
 - **Customizable look:** background color, opacity and optional blur, title color and size,
   icon size.
 - **Launch at login** for AeroStage and AeroSpace, switchable in the settings.
@@ -207,8 +207,10 @@ correct.
   more events were closed without review. AeroSpace does not take issues directly; ideas go
   through Discussions, and most of them get no answer. That is the maintainer's choice, but
   it means we cannot wait for these events.
-- Without them, AeroStage falls back to asking the window server twice a second whether the
-  visible stage's windows are still there. It works, but it is a workaround.
+- Without them, AeroStage has to ask the window server twice a second whether the visible
+  stage's windows are still there. It works, but it is a workaround. AeroStage WM adds one
+  event, `workspace-windows-changed`, that covers all these cases and stays silent while the
+  screen is locked; AeroStage then needs no check at all.
 - AeroStage WM is a **thin fork**: AeroSpace's code with as few, well-separated changes as
   possible (new name, extra `subscribe` events, a build script). It keeps AeroSpace's
   history, so new AeroSpace releases can be taken over by rebasing these changes.

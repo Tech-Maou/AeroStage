@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **in progress**, phase 4 started (v0.8)
+Status: **in progress**, phase 4 started (v0.10)
 
 AeroStage is a native macOS companion app for the tiling window manager
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
@@ -404,7 +404,20 @@ Each phase starts with a short alignment.
 - **Hosting:** like AeroStage: `main` + `dev` on a private Git server, GitHub gets `main` via a push mirror. The
   GitHub repo is a normal repo, not a GitHub fork, so issues and PRs don't default to upstream.
 
-## 18. Open
+## 18. v0.10: `workspace-windows-changed`
+
+- AeroStage WM broadcasts `workspace-windows-changed` (`workspace`, `windowIds`) after each
+  complete refresh session for every workspace whose set of windows changed, empty list
+  when it became empty. Skipped while the screen is locked (`CGSSessionScreenIsLocked`),
+  keeping the previous snapshot, so the lock's phantom closes and restores are not reported.
+- Verified with a terminal window: open, move to another workspace (two events), minimize
+  (workspace empty), unminimize, close: each produced the expected event within a refresh.
+  Not yet verified: screen lock.
+- AeroStage refreshes on the event like on any other and disables the 0.5 s window-server
+  check when the CLI is `aerostage-wm`; with plain AeroSpace the check stays as fallback.
+  `aerostage status` shows "(window events)" or "(fallback check)".
+
+## 19. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.
