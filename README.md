@@ -1,15 +1,21 @@
 # AeroStage
 
-**A Stage Manager–style sidebar for the tiling window manager [AeroSpace](https://github.com/nikitabobko/AeroSpace).**
+**A Stage Manager–style sidebar for [AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM),
+a tiling window manager based on [AeroSpace](https://github.com/nikitabobko/AeroSpace).**
 
-AeroStage shows every AeroSpace workspace as a "stage" in a slim sidebar at the edge of the
-screen, like the strip of the macOS Stage Manager. You keep driving everything with the
-keyboard through AeroSpace, but clicking a stage or a window works just as well.
+AeroStage shows every workspace as a "stage" in a slim sidebar at the edge of the screen, like
+the strip of the macOS Stage Manager. You keep driving everything with the keyboard through
+the window manager, but clicking a stage or a window works just as well.
+
+> [!IMPORTANT]
+> AeroStage only runs reliably with **[AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM)**,
+> our fork of AeroSpace (see [Why AeroStage WM?](#why-aerostage-wm)). It still starts with the
+> original AeroSpace, but some changes (closed or minimized windows, emptied stages) are then
+> only noticed with a delay or by a fallback check.
 
 > [!NOTE]
-> AeroStage is an **unofficial companion app**. It is not part of AeroSpace and not maintained
-> by its developers. AeroSpace has to be installed separately. Please report AeroStage issues
-> here, not in the AeroSpace project.
+> AeroStage and AeroStage WM are **unofficial**. They are not part of AeroSpace and not
+> maintained by its developers. Please report issues here, not in the AeroSpace project.
 
 ## Features
 
@@ -61,7 +67,8 @@ Details are in the [specification](SPEC.md).
 ## Requirements
 
 - macOS 14 Sonoma or later
-- [AeroSpace](https://github.com/nikitabobko/AeroSpace) 0.21 or later, with Accessibility
+- [AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM) (recommended) or
+  [AeroSpace](https://github.com/nikitabobko/AeroSpace) 0.21 or later, with Accessibility
   permission
 
 ## Installation
@@ -72,7 +79,7 @@ Details are in the [specification](SPEC.md).
 brew install --cask tech-maou/tap/aerostage
 ```
 
-The cask installs AeroSpace as a dependency. AeroStage is not notarized by Apple because the
+The cask installs AeroStage WM as a dependency. AeroStage is not notarized by Apple because the
 project does not use a paid Apple developer account, so the cask removes the quarantine
 attribute to let macOS launch the app.
 
@@ -90,8 +97,9 @@ scripts/install.sh
 
 ## Setup
 
-1. Launch AeroSpace and allow it under **System Settings → Privacy & Security →
-   Accessibility**.
+1. Install [AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM), launch it and allow it
+   under **System Settings → Privacy & Security → Accessibility**. Quit and uninstall the
+   original AeroSpace first; two window managers must not run at the same time.
 2. Launch AeroStage. On first launch:
    - AeroStage creates `~/.aerospace.toml` if none exists.
    - In an existing config only the marked sections are changed (see below).
@@ -186,6 +194,30 @@ tccutil reset ScreenCapture io.github.tech-maou.AeroStage
 AeroStage controls windows exclusively through the `aerospace` CLI and therefore needs no
 Accessibility permission of its own.
 
+## Why AeroStage WM?
+
+AeroStage started as a pure companion app that talks to AeroSpace only through its command
+line (`aerospace subscribe`, `list-windows`, …). That works, with one gap: AeroSpace reports
+no event when a window is **closed** or **minimized**, when a window is **moved** to another
+workspace, or when a workspace becomes **empty**. A sidebar needs exactly these to stay
+correct.
+
+- A request for a `window-closed` event was declined upstream
+  ([PR #2199](https://github.com/nikitabobko/AeroSpace/pull/2199)), and other proposals for
+  more events were closed without review. AeroSpace does not take issues directly; ideas go
+  through Discussions, and most of them get no answer. That is the maintainer's choice, but
+  it means we cannot wait for these events.
+- Without them, AeroStage falls back to asking the window server twice a second whether the
+  visible stage's windows are still there. It works, but it is a workaround.
+- AeroStage WM is a **thin fork**: AeroSpace's code with as few, well-separated changes as
+  possible (new name, extra `subscribe` events, a build script). It keeps AeroSpace's
+  history, so new AeroSpace releases can be taken over by rebasing these changes.
+- It has its **own name** because the MIT license covers the code but grants no rights to the
+  name "AeroSpace", and because an app called AeroSpace with a different behavior would be
+  confusing. Its CLI (`aerostage-wm`), bundle ID and internal paths differ so that it never
+  collides with an installed AeroSpace. The config file stays the same, so existing
+  AeroSpace configs keep working.
+
 ## Known limitations
 
 - AeroSpace tiles every window to fill its stage; windows cannot be snapped to a side with
@@ -236,6 +268,9 @@ AeroStage is released under the [MIT License](LICENSE).
 
 The config template is based on AeroSpace's default config (MIT, © 2023 Nikita Bobko). See the
 [third-party notices](THIRD-PARTY-NOTICES.md).
+
+AeroStage WM, the window manager AeroStage is built for, is a fork of AeroSpace and keeps
+AeroSpace's MIT license and copyright notice; see its repository.
 
 ## Acknowledgements
 

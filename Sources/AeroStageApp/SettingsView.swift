@@ -54,7 +54,7 @@ struct SettingsView: View {
                         Button("Open Login Items …") { loginItem.openLoginItemsSettings() }
                     }
                 }
-                Toggle("Start AeroSpace at login", isOn: Binding(
+                Toggle("Start the window manager at login", isOn: Binding(
                     get: { config.aerospaceStartsAtLogin ?? false },
                     set: { enabled in
                         let client = store.client
@@ -69,7 +69,7 @@ struct SettingsView: View {
                     if config.aerospaceStartsAtLogin == nil {
                         Text("start-at-login was not found in \(config.configURL.path).")
                     } else {
-                        Text("Sets start-at-login in your AeroSpace config.")
+                        Text("Sets start-at-login in the window manager config (~/.aerospace.toml, used by AeroStage WM and AeroSpace).")
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -269,7 +269,7 @@ struct SettingsView: View {
                 Toggle("Manage config (gaps and shortcuts)", isOn: $settings.manageConfig)
                 Stepper("Gap between windows: \(settings.innerGap) pt", value: $settings.innerGap, in: 0...40)
                 Stepper("Gap to screen edge: \(settings.outerGap) pt", value: $settings.outerGap, in: 0...40)
-                TextField("Path to aerospace CLI", text: $settings.aerospacePath, prompt: Text("automatic"))
+                TextField("Path to window manager CLI", text: $settings.aerospacePath, prompt: Text("automatic: aerostage-wm, then aerospace"))
             } footer: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.isConnected ? "Connected" : "Not reachable")

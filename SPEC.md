@@ -12,8 +12,9 @@ just as well.
 
 ## 1. Principles
 
-- **Separate companion app, not a fork.** AeroSpace stays unmodified and is installed
-  separately. All communication goes through the `aerospace` CLI.
+- **Separate app on a thin fork.** AeroStage stays a separate app and talks to the window
+  manager only through its CLI. Since v0.9 the window manager is **AeroStage WM**, a thin
+  fork of AeroSpace (see 17); plain AeroSpace still works with fallbacks.
 - **Stay close to AeroSpace.** AeroSpace's default shortcuts and behavior are kept. If
   AeroStage is not running, AeroSpace keeps working normally.
 - **No polling of AeroSpace.** Updates come from the `aerospace subscribe` event stream. The
@@ -382,7 +383,28 @@ Each phase starts with a short alignment.
   sidebar only in reserved mode (v0.8.3); before, windows of the visible stage spilled out
   of their card in overlay mode. The preview is also clipped to its card.
 
-## 17. Open
+## 17. AeroStage WM (decision 2026-10-26)
+
+- **Why:** AeroSpace's `subscribe` lacks events for closed, minimized and moved windows and for
+  emptied workspaces. A `window-closed` event was declined upstream (PR #2199, screen lock makes
+  all windows briefly "die"), and similar PRs (#2116, #2162, #2181) were closed without review.
+  Feature ideas go through Discussions; in a sample of 35 recent ideas the maintainer replied
+  to 20 %, none visibly became an issue.
+- **What:** a thin fork, `Tech-Maou/AeroStage-WM`, based on an AeroSpace release tag, with
+  few atomic commits: rename (app name, bundle ID `io.github.tech-maou.AeroStageWM`, CLI
+  `aerostage-wm`, internal paths), a bundle script for the Command Line Tools, README/LICENSE,
+  then the extra `subscribe` events. Config file lookup stays AeroSpace's, as a drop-in
+  replacement.
+- **Updates:** a pull mirror of the original on a private Git server is the source;
+  the fork's commits are rebased onto new AeroSpace release tags. Versions name the base,
+  e.g. `v0.21.3-stage.1`.
+- **Licenses:** AeroSpace's MIT license and copyright stay, with an added line for the
+  modifications; `legal/third-party-license/` stays complete; AeroSpace's name, logo and icon
+  are not used for the fork.
+- **Hosting:** like AeroStage: `main` + `dev` on a private Git server, GitHub gets `main` via a push mirror. The
+  GitHub repo is a normal repo, not a GitHub fork, so issues and PRs don't default to upstream.
+
+## 18. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

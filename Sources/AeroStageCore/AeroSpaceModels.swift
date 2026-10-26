@@ -102,9 +102,13 @@ public struct AeroEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// Locations of the `aerospace` CLI, in search order.
+/// Locations of the window manager CLI, in search order: AeroStage WM first (the fork
+/// AeroStage is made for), the original AeroSpace as a fallback.
 public enum AeroSpacePaths {
     public static let candidates = [
+        "/Applications/AeroStage WM.app/Contents/Resources/bin/aerostage-wm",
+        "/opt/homebrew/bin/aerostage-wm",
+        "/usr/local/bin/aerostage-wm",
         "/opt/homebrew/bin/aerospace",
         "/usr/local/bin/aerospace",
     ]

@@ -8,6 +8,9 @@ AeroStage does not bundle any third-party libraries. One part, however, is deriv
 - Usage: the config template in `Sources/AeroStageCore/DefaultConfig.swift` is based on the
   `default-config.toml` of AeroSpace 0.21.3 (modified: modifier, gaps, managed sections).
   AeroSpace itself is not distributed with AeroStage; it is installed separately.
+- AeroStage is meant to run with **AeroStage WM**
+  (https://github.com/Tech-Maou/AeroStage-WM), a fork of AeroSpace that is distributed
+  separately under AeroSpace's MIT license with its own notices.
 - License:
 
 ```
