@@ -370,6 +370,10 @@ Each phase starts with a short alignment.
   happens; if focus stayed on the empty stage, the rule applies as well.
 - Verified with a terminal window on stage 5 of 5: closing and minimizing both end on stage 4.
 
+- The layout view's canvas is the full monitor in overlay mode and the monitor minus the
+  sidebar only in reserved mode (v0.8.3); before, windows of the visible stage spilled out
+  of their card in overlay mode. The preview is also clipped to its card.
+
 ## 17. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is

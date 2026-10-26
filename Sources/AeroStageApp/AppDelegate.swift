@@ -273,9 +273,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Area in which AeroSpace lays out windows: the monitor in CG coordinates minus the sidebar.
+    /// Area in which AeroSpace lays out windows: the monitor in CG coordinates, minus the
+    /// sidebar in reserved mode.
     private func windowArea(on screen: NSScreen) -> CGRect {
         var area = CGDisplayBounds(MonitorResolver.displayID(screen))
+        // Only reserved mode takes space away; in overlay mode windows use the full width.
+        guard settings.displayMode == .reserved, settings.sidebarVisible else { return area }
         let reserved = CGFloat(sidebar.reservedGap(on: screen))
         area.size.width -= reserved
         if settings.side == .left { area.origin.x += reserved }

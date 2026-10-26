@@ -327,6 +327,8 @@ struct StageLayout: View {
                 }
             }
             .aspectRatio(aspect, contentMode: .fit)
+            // Windows partly off screen (e.g. moved by mouse) must not spill out of the card.
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         }
     }
 
