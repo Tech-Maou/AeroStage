@@ -1,6 +1,5 @@
 import AeroStageCore
 import AppKit
-import Combine
 
 /// Watches the window manager's process. When it quits without AeroStage asking it to, the
 /// sidebar and the menu say so and offer to start it again; a notification tells the user why
@@ -14,17 +13,20 @@ final class WindowManagerWatch: ObservableObject {
     private let store: StateStore
     /// Set while AeroStage itself quits the window manager (menu, update), so no warning appears.
     var expectingQuit = false
-    private var subscriptions: Set<AnyCancellable> = []
+    private var timer: Timer?
+    /// A quit only counts after this long, so an update or restart does not flash a warning.
+    private static let grace: TimeInterval = 4
+    private var missingSince: Date?
 
     init(store: StateStore) {
         self.store = store
         // Launch and terminate notifications are not posted for apps without a Dock icon
-        // (LSUIElement) like the window managers, so observe the list of running apps instead.
-        NSWorkspace.shared.publisher(for: \.runningApplications)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.update() }
-            .store(in: &subscriptions)
-        isRunning = process != nil
+        // (LSUIElement) like the window managers, and observing `runningApplications` missed a
+        // restart during an update. A look at the process list every second is cheap and reliable.
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.update() }
+        }
+
     }
 
     var usesAeroStageWM: Bool { AeroSpacePaths.reportsWindowChanges(store.client.executable) }
@@ -36,14 +38,25 @@ final class WindowManagerWatch: ObservableObject {
     }
 
     private func update() {
-        let running = process != nil
-        guard running != isRunning else { return }
-        isRunning = running
-        if !running && !expectingQuit {
+        if process != nil {
+            missingSince = nil
+            if !isRunning {
+                NSLog("AeroStage: \(name) is running again")
+                isRunning = true
+                expectingQuit = false
+                store.scheduleRefresh(after: .milliseconds(300))
+            }
+            return
+        }
+        let since = missingSince ?? Date()
+        missingSince = since
+        guard isRunning, -since.timeIntervalSinceNow >= Self.grace else { return }
+        isRunning = false
+        NSLog("AeroStage: \(name) is not running")
+        if !expectingQuit {
             Notifier.shared.post(id: "window-manager", title: "\(name) quit",
                                  body: "All windows are back on screen. Start \(name) from the sidebar or the menu bar to put them back on their stages.")
         }
-        if running { expectingQuit = false }
         store.scheduleRefresh(after: .milliseconds(300))
     }
 

@@ -12,6 +12,7 @@ final class StageCommands {
     var reload: () -> Void = {}
     var thumbnailStatus: () -> String = { "" }
     var startupStatus: () -> String = { "" }
+    var windowManagerStatus: () -> String = { "" }
 
     init(store: StateStore, settings: AppSettings) {
         self.store = store
@@ -92,7 +93,7 @@ final class StageCommands {
         let stages = store.stages.map { "\($0.position)=\($0.workspace)" }.joined(separator: " ")
         let cli = (store.client.executable as NSString).lastPathComponent
             + (AeroSpacePaths.reportsWindowChanges(store.client.executable) ? " (window events)" : " (fallback check)")
-        return "\(cli) \(store.isConnected ? "connected" : "not reachable"), \(monitor), stages: \(stages) (max \(settings.maxStages)), \(thumbnailStatus()), \(startupStatus())"
+        return "\(cli) \(store.isConnected ? "connected" : "not reachable"), \(windowManagerStatus()), \(monitor), stages: \(stages) (max \(settings.maxStages)), \(thumbnailStatus()), \(startupStatus())"
     }
 }
 

@@ -85,6 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let running = thumbnails.isRunning ? "running" : "stopped"
             return "view: \(settings.cardStyle.title) (\(running)), screen recording \(access), \(thumbnails.images.count) images, \(thumbnails.frames.count) positions, last capture \(thumbnails.lastCapture.map { String(format: "%.1f s ago", -$0.timeIntervalSinceNow) } ?? "–")"
         }
+        commands.windowManagerStatus = { [unowned self] in
+            "\(watch.name) \(watch.isRunning ? "running" : "not running")"
+        }
         commands.startupStatus = { [unowned self] in
             loginItem.refresh()
             let login = switch loginItem.status {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.3
+
+- Fixed: after the window manager restarted (for example during an update), the sidebar could
+  keep saying "AeroStage WM is not running". AeroStage now checks the process list every
+  second and only reports a quit after 4 seconds, so updates and restarts show no warning.
+- `aerostage status` shows whether the window manager is running.
+
 ## 1.3.2
 
 - When the window manager quits (on purpose or not), the sidebar no longer shows the outdated

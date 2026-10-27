@@ -508,8 +508,9 @@ Each phase starts with a short alignment.
 
 ## 24. 1.3.2: window manager quits and restarts
 
-- `WindowManagerWatch` observes `NSWorkspace.runningApplications` (launch/terminate
-  notifications are not posted for LSUIElement apps). While the window manager is not running,
+- `WindowManagerWatch` looks at the process list every second (launch/terminate
+  notifications are not posted for LSUIElement apps, and KVO on `runningApplications` missed a
+  restart during an update); a quit counts after 4 s. While the window manager is not running,
   the sidebar shows `WindowManagerStopped` with a start button, the menu starts with
   "Start AeroStage WM", and an unexpected quit posts a notification. Quits started by AeroStage
   (menu, update) set `expectingQuit`.
