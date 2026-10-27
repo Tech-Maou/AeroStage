@@ -250,7 +250,14 @@ scripts/test.sh      # tests (Swift Testing, works without Xcode)
 scripts/bundle.sh    # builds build/AeroStage.app
 scripts/install.sh   # builds, installs to /Applications, restarts
 scripts/release.sh   # builds dist/AeroStage-v<version>.zip for a GitHub release
+scripts/publish.sh   # dev → main, tag, signed zip, GitHub release, Homebrew cask
 ```
+
+`publish.sh` needs the GitHub CLI (`gh auth login`) and the long-lived signing certificate
+**"AeroStage Release"**. Releases are always signed with it, so macOS keeps the Screen
+Recording and Accessibility permissions across updates (the permission is tied to the
+certificate, not to a single build). Release notes come from the matching `## <version>`
+section of the changelog.
 
 `release.sh` prints the zip's SHA256 and updates `Casks/aerostage.rb` in the
 [tap](https://github.com/Tech-Maou/homebrew-tap) if it is checked out next to this repository.
