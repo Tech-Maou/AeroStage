@@ -68,16 +68,23 @@ struct SettingsView: View {
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 210)
         } detail: {
-            switch navigation.section ?? .stageGeneral {
-            case .stageGeneral: general
-            case .stageAppearance: appearance
-            case .stageMenuBar: menuBar
-            case .wmGeneral: windowManagerGeneral
-            case .wmKeyboard: keyboard
-            case .wmLayout: layout
-            case .wmGaps: gaps
-            case .wmBehavior: behavior
-            case .wmAdvanced: advanced
+            let section = navigation.section ?? .stageGeneral
+            VStack(spacing: 0) {
+                // Permanent on every window manager page while the original AeroSpace is used.
+                if SettingsSection.windowManager.contains(section), !usesAeroStageWM {
+                    AeroSpaceWarningBanner()
+                }
+                switch section {
+                case .stageGeneral: general
+                case .stageAppearance: appearance
+                case .stageMenuBar: menuBar
+                case .wmGeneral: windowManagerGeneral
+                case .wmKeyboard: keyboard
+                case .wmLayout: layout
+                case .wmGaps: gaps
+                case .wmBehavior: behavior
+                case .wmAdvanced: advanced
+                }
             }
         }
         .frame(minWidth: 760, minHeight: 540)
@@ -376,12 +383,6 @@ struct SettingsView: View {
                                value: usesAeroStageWM ? "Reported as events" : "Noticed by a fallback check")
                 LabeledContent("Config file", value: config.configURL.path)
             }
-            if !usesAeroStageWM {
-                Section {
-                    Text("AeroStage runs reliably only with AeroStage WM, a fork of AeroSpace that reports closed, minimized and moved windows.")
-                    Link("About AeroStage WM", destination: URL(string: "https://github.com/Tech-Maou/AeroStage-WM")!)
-                }
-            }
         }
         .formStyle(.grouped)
     }
@@ -507,6 +508,29 @@ struct SettingsView: View {
         let target = index + offset
         guard settings.monitorPriority.indices.contains(target) else { return }
         settings.monitorPriority.swapAt(index, target)
+    }
+}
+
+/// Shown above the window manager settings while the original AeroSpace is in use; cannot be dismissed.
+struct AeroSpaceWarningBanner: View {
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.white, .orange)
+                .font(.title3)
+            (Text("Full functionality only with AeroStage WM. ").fontWeight(.semibold)
+                + Text("With the original AeroSpace, closed, minimized and moved windows are only noticed by a fallback check, and some options are unavailable. ")
+                + Text("[AeroStage WM on GitHub](https://github.com/Tech-Maou/AeroStage-WM)").underline())
+                .tint(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.22), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.orange.opacity(0.8), lineWidth: 1))
+        .padding([.horizontal, .top], 20)
     }
 }
 

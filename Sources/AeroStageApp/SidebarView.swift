@@ -465,6 +465,7 @@ struct VisualEffectBackground: NSViewRepresentable {
 /// click to open an empty one.
 struct NewStageZone: View {
     @Environment(\.sidebarInk) private var ink
+    @Environment(\.sidebarTitleSize) private var titleSize
     let actions: SidebarActions
     @State private var dropTargeted = false
     @EnvironmentObject private var dragState: WindowDragState
@@ -474,13 +475,16 @@ struct NewStageZone: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        Label("New Stage", systemImage: "plus")
-            .font(.system(size: 11, weight: .medium, design: .rounded))
-            .foregroundStyle(targeted ? Color.accentColor : ink.opacity(0.75))
+        // Same color and shadow as the stage titles, so it stays readable on any background.
+        Label("New Stage", systemImage: "plus.circle.fill")
+            .font(.system(size: max(titleSize - 1, 11), weight: .semibold, design: .rounded))
+            .foregroundStyle(targeted ? Color.accentColor : ink)
+            .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
             .frame(maxWidth: .infinity, minHeight: CardMetrics.newStageHeight)
-            .background(shape.fill(ink.opacity(targeted ? 0.14 : hovering ? 0.1 : 0.04)))
-            .overlay(shape.strokeBorder(targeted ? Color.accentColor : ink.opacity(0.3),
-                                        style: StrokeStyle(lineWidth: 1.5, dash: [5, 3])))
+            .background(shape.fill(targeted ? Color.accentColor.opacity(0.22) : ink.opacity(hovering ? 0.16 : 0.08)))
+            .overlay(shape.strokeBorder(targeted ? Color.accentColor : ink.opacity(hovering ? 0.95 : 0.7),
+                                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4])))
+            .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
             .contentShape(shape)
             .onTapGesture { actions.newStage() }
             .onHover { hovering = $0 }

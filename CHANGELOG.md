@@ -8,6 +8,10 @@
     monitor, show apps hidden with ⌘H again.
   - **Keyboard:** key positions (QWERTY, Dvorak, Colemak).
   - **Advanced:** reload the config automatically when the file is saved.
+- With the original AeroSpace, the window manager settings show a permanent warning that full
+  functionality needs AeroStage WM, with a link to it.
+- The "New Stage" area uses the title color and a stronger dashed border, so it is easier to
+  see on transparent backgrounds.
 - Each change is written as a single line of `~/.aerospace.toml` and reloaded right away;
   everything else in the file stays as it is. App rules, custom modes and free shortcuts are
   still edited in the file ("Open in Editor").
