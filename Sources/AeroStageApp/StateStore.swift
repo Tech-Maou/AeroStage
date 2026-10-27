@@ -32,6 +32,13 @@ final class StateStore: ObservableObject {
     private var visibilityTimer: Timer?
     /// Windows of the visible stage that were missing at the last check.
     private var missingWindows: Set<Int> = []
+    /// The window manager's running process; set by the app delegate.
+    var windowManagerProcess: () -> NSRunningApplication? = { nil }
+    /// Process for which the stage assignment was already restored (or found nothing to restore).
+    private var restoredPID: Int32?
+    private var isRestoring = false
+    private var lastSnapshot: StageSnapshot?
+    private static let snapshotKey = "stageSnapshot"
 
     init(client: AeroSpaceClient, settings: AppSettings) {
         self.client = client
@@ -112,6 +119,8 @@ final class StateStore: ObservableObject {
         resolveSidebarTarget()
         activeWorkspace = visible.first { $0.monitorId == sidebarMonitor?.monitorId }?.workspace
         restage()
+        // While windows go back to their stages, stages empty on purpose: do not leave them.
+        if rememberOrRestore() { return }
 
         guard let emptied = previousActive, !previousWindowIDs.isEmpty,
               !windows.contains(where: { $0.workspace == emptied })
@@ -123,6 +132,68 @@ final class StateStore: ObservableObject {
         if closed || activeWorkspace == emptied {
             leaveEmptiedStage(emptied, previousOrder: previousOrder)
         }
+    }
+
+    // MARK: Stage assignment across window manager restarts
+
+    /// Saves which stage each window is on. If the window manager restarted since the last save
+    /// (it then puts every window on one workspace), moves the windows back first.
+    /// Returns true while the windows are not settled yet.
+    private func rememberOrRestore() -> Bool {
+        guard isConnected, let process = windowManagerProcess() else { return false }
+        if isRestoring { return true }
+        let pid = process.processIdentifier
+        if restoredPID != pid, let saved = loadSnapshot(), saved.pid != pid {
+            // Give the window manager a moment to pick up all windows after its start.
+            if let launched = process.launchDate, -launched.timeIntervalSinceNow < 2 {
+                scheduleRefresh(after: .seconds(2))
+                return true
+            }
+            restoredPID = pid
+            let restore = saved.restore(onto: windows)
+            if !restore.isEmpty {
+                isRestoring = true
+                Task { await perform(restore, focus: saved.focusedWorkspace) }
+                return true
+            }
+        }
+        restoredPID = pid
+        saveSnapshot(StageSnapshot(pid: pid, focusedWorkspace: activeWorkspace, windows: windows))
+        return false
+    }
+
+    private func perform(_ restore: StageSnapshot.Restore, focus: String?) async {
+        NSLog("AeroStage: restoring \(restore.moves.count) windows to their stages after a window manager restart")
+        let client = client
+        for move in restore.moves {
+            try? await client.moveWindow(move.windowId, to: move.workspace)
+        }
+        for id in restore.floating {
+            try? await client.setFloating(true, windowId: id)
+        }
+        if let focus { try? await client.workspace(focus) }
+        isRestoring = false
+        scheduleRefresh()
+    }
+
+    private func loadSnapshot() -> StageSnapshot? {
+        guard let data = UserDefaults.standard.data(forKey: Self.snapshotKey),
+              let snapshot = try? JSONDecoder().decode(StageSnapshot.self, from: data)
+        else { return nil }
+        // Window ids start over after a reboot.
+        let boot = Date(timeIntervalSinceNow: -ProcessInfo.processInfo.systemUptime)
+        return snapshot.savedAt > boot ? snapshot : nil
+    }
+
+    private func saveSnapshot(_ snapshot: StageSnapshot) {
+        // Never overwrite a good assignment with an empty one (window manager still starting),
+        // and skip writes when nothing but the time changed.
+        guard !snapshot.workspaces.isEmpty else { return }
+        var comparable = snapshot
+        comparable.savedAt = lastSnapshot?.savedAt ?? snapshot.savedAt
+        guard comparable != lastSnapshot, let data = try? JSONEncoder().encode(snapshot) else { return }
+        lastSnapshot = snapshot
+        UserDefaults.standard.set(data, forKey: Self.snapshotKey)
     }
 
     /// The last window of the visible stage was closed, minimized or moved away: show the

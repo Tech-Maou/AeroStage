@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBar: MenuBarController!
     private var updates: UpdateChecker!
     private let conflict = AeroSpaceConflict()
+    private var watch: WindowManagerWatch!
     private var updateWindow: UpdateWindowController!
     private var subscriptions: Set<AnyCancellable> = []
 
@@ -37,14 +38,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let client = makeClient()
         store = StateStore(client: client, settings: settings)
         commands = StageCommands(store: store, settings: settings)
+        watch = WindowManagerWatch(store: store)
+        store.windowManagerProcess = { [unowned self] in watch.process }
         let actions = makeActions()
-        sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions)
+        sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, watch: watch, actions: actions)
         setUpWindowDragging(actions: actions)
         updates = UpdateChecker(settings: settings)
         settingsWindow = SettingsWindowController { [unowned self] navigation in
             SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, updates: updates, conflict: conflict, navigation: navigation)
         }
-        menuBar = MenuBarController(store: store, settings: settings, updates: updates, conflict: conflict)
+        menuBar = MenuBarController(store: store, settings: settings, updates: updates, conflict: conflict, watch: watch)
         menuBar.openSettings = { [unowned self] in settingsWindow.show($0) }
         menuBar.focusWorkspace = { [unowned self] name in
             let client = store.client

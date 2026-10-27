@@ -56,12 +56,14 @@ final class SidebarController {
     private(set) var isShown = false
     var onVisibilityChange: ((Bool) -> Void)?
 
-    init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, dragState: WindowDragState, actions: SidebarActions) {
+    init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, dragState: WindowDragState,
+         watch: WindowManagerWatch, actions: SidebarActions) {
         self.settings = settings
         panel.acceptsMouseMovedEvents = true
         observeMenus()
         panel.contentView = FirstMouseHostingView(
-            rootView: SidebarView(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions))
+            rootView: SidebarView(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState,
+                                  watch: watch, actions: actions))
     }
 
     var isOverlay: Bool { settings.displayMode == .overlay }

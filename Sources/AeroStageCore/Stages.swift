@@ -149,3 +149,50 @@ public enum StageCapacity {
         return max(0, min(naturalContentHeight, perCard))
     }
 }
+
+/// Which stage each window was on, saved while the window manager runs. When it restarts, all
+/// windows land on one workspace; AeroStage then moves them back. Window ids stay the same as long
+/// as the windows stay open, so ids of windows closed in between simply find no match.
+public struct StageSnapshot: Codable, Equatable, Sendable {
+    /// Process of the window manager the snapshot was taken from; a different one means it restarted.
+    public var pid: Int32
+    public var focusedWorkspace: String?
+    public var workspaces: [Int: String]
+    public var floating: Set<Int>
+    /// App per window: after a reboot, ids start over and may belong to other windows.
+    public var apps: [Int: String]
+    public var savedAt: Date
+
+    public init(pid: Int32, focusedWorkspace: String?, windows: [AeroWindow], savedAt: Date = Date()) {
+        self.pid = pid
+        self.focusedWorkspace = focusedWorkspace
+        self.savedAt = savedAt
+        workspaces = Dictionary(windows.map { ($0.windowId, $0.workspace) }, uniquingKeysWith: { first, _ in first })
+        apps = Dictionary(windows.map { ($0.windowId, $0.appName) }, uniquingKeysWith: { first, _ in first })
+        floating = Set(windows.filter(\.isFloating).map(\.windowId))
+    }
+
+    public struct Restore: Equatable, Sendable {
+        public var moves: [(windowId: Int, workspace: String)]
+        public var floating: [Int]
+
+        public static func == (lhs: Restore, rhs: Restore) -> Bool {
+            lhs.moves.map(\.windowId) == rhs.moves.map(\.windowId)
+                && lhs.moves.map(\.workspace) == rhs.moves.map(\.workspace)
+                && lhs.floating == rhs.floating
+        }
+
+        public var isEmpty: Bool { moves.isEmpty && floating.isEmpty }
+    }
+
+    /// Moves that put the still open windows back on their stages, and windows to float again.
+    public func restore(onto windows: [AeroWindow]) -> Restore {
+        let sorted = windows.sorted { $0.windowId < $1.windowId }.filter { apps[$0.windowId] == $0.appName }
+        let moves = sorted.compactMap { window -> (windowId: Int, workspace: String)? in
+            guard let saved = workspaces[window.windowId], saved != window.workspace else { return nil }
+            return (window.windowId, saved)
+        }
+        let floatAgain = sorted.filter { floating.contains($0.windowId) && !$0.isFloating }.map(\.windowId)
+        return Restore(moves: moves, floating: floatAgain)
+    }
+}

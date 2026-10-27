@@ -58,6 +58,7 @@ struct SidebarView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var thumbnails: ThumbnailService
     let dragState: WindowDragState
+    @ObservedObject var watch: WindowManagerWatch
     let actions: SidebarActions
 
     /// Thumbnails only with permission, icons otherwise.
@@ -75,7 +76,12 @@ struct SidebarView: View {
         GeometryReader { geometry in
             // With many stages all previews shrink evenly, so every card stays visible.
             let previewHeight = style == .icons ? nil : metrics(for: geometry.size).contentHeight(forCount: store.stages.count)
-            cards(previewHeight: previewHeight)
+            if watch.isRunning {
+                cards(previewHeight: previewHeight)
+            } else {
+                // The last known stages would be wrong: all windows are back on screen.
+                WindowManagerStopped(watch: watch)
+            }
         }
         .background {
             ZStack {
@@ -483,6 +489,34 @@ struct VisualEffectBackground: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+/// Shown instead of the stages while the window manager is not running.
+struct WindowManagerStopped: View {
+    @Environment(\.sidebarInk) private var ink
+    @ObservedObject var watch: WindowManagerWatch
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 26, weight: .medium))
+            Text("\(watch.name) is not running")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text("All windows are on screen. Start it to put them back on their stages.")
+                .font(.caption)
+                .foregroundStyle(ink.opacity(0.75))
+                .multilineTextAlignment(.center)
+            Button("Start \(watch.name)") { watch.start() }
+                .controlSize(.large)
+                .padding(.top, 4)
+            Spacer()
+        }
+        .foregroundStyle(ink)
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }
 
 /// Drop target and button at the end of the sidebar: drop a window here for a new stage,

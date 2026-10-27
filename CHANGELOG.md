@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2
+
+- When the window manager quits (on purpose or not), the sidebar no longer shows the outdated
+  stages. It says "AeroStage WM is not running" with a **Start AeroStage WM** button; the menu
+  bar menu has the same entry, and a notification explains why all windows are on screen.
+- Stages survive a window manager restart: AeroStage remembers which window was on which stage
+  (and which floated). When AeroStage WM starts again, for example after a quit or an update,
+  the windows go back to their stages and the visible stage is shown again. After a reboot the
+  windows are new, so nothing is restored.
+- Needs AeroStage WM 0.21.3-stage.4, whose menu no longer quits or disables it with ⌘Q or ⌘E.
+
 ## 1.3.1
 
 - The window context menu shows the current state: **Tiling** and **Floating** with a checkmark

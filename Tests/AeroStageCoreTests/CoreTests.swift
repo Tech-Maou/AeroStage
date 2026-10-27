@@ -261,3 +261,39 @@ import Testing
         #expect(UpdateComponent.windowManager.caskToken == "aerostage-wm")
     }
 }
+
+@Suite struct StageSnapshotTests {
+    private func window(_ id: Int, _ workspace: String, layout: String = "h_tiles") -> AeroWindow {
+        AeroWindow(windowId: id, appName: "App", appBundleId: nil, windowTitle: "", workspace: workspace, monitorId: 1, windowLayout: layout)
+    }
+
+    @Test func movesWindowsBackAndFloatsAgain() {
+        let snapshot = StageSnapshot(pid: 1, focusedWorkspace: "2", windows: [
+            window(10, "1"), window(11, "2"), window(12, "3", layout: "floating"), window(13, "3"),
+        ])
+        // After a restart everything is on workspace 1, window 13 was closed meanwhile, 14 is new.
+        let restore = snapshot.restore(onto: [window(10, "1"), window(11, "1"), window(12, "1"), window(14, "1")])
+        #expect(restore.moves.map(\.windowId) == [11, 12])
+        #expect(restore.moves.map(\.workspace) == ["2", "3"])
+        #expect(restore.floating == [12])
+    }
+
+    @Test func ignoresIdsOfOtherApps() {
+        let snapshot = StageSnapshot(pid: 1, focusedWorkspace: "1", windows: [window(1, "2")])
+        let other = AeroWindow(windowId: 1, appName: "Other", appBundleId: nil, windowTitle: "", workspace: "1", monitorId: 1)
+        #expect(snapshot.restore(onto: [other]).isEmpty)
+    }
+
+    @Test func nothingToDoWhenUnchanged() {
+        let windows = [window(1, "1"), window(2, "2")]
+        let snapshot = StageSnapshot(pid: 1, focusedWorkspace: "1", windows: windows)
+        #expect(snapshot.restore(onto: windows).isEmpty)
+    }
+
+    @Test func survivesEncoding() throws {
+        let snapshot = StageSnapshot(pid: 7, focusedWorkspace: "2", windows: [window(1, "2", layout: "floating")],
+                                     savedAt: Date(timeIntervalSince1970: 1_000_000))
+        let decoded = try JSONDecoder().decode(StageSnapshot.self, from: JSONEncoder().encode(snapshot))
+        #expect(decoded == snapshot)
+    }
+}

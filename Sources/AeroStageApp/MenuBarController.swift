@@ -12,6 +12,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let settings: AppSettings
     private let updates: UpdateChecker
     private let conflict: AeroSpaceConflict
+    private let watch: WindowManagerWatch
     private var item: NSStatusItem?
     private var subscriptions: Set<AnyCancellable> = []
 
@@ -19,11 +20,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     var focusWorkspace: (String) -> Void = { _ in }
     var showUpdates: () -> Void = {}
 
-    init(store: StateStore, settings: AppSettings, updates: UpdateChecker, conflict: AeroSpaceConflict) {
+    init(store: StateStore, settings: AppSettings, updates: UpdateChecker, conflict: AeroSpaceConflict, watch: WindowManagerWatch) {
         self.store = store
         self.settings = settings
         self.updates = updates
         self.conflict = conflict
+        self.watch = watch
         super.init()
         updates.$updates
             .sink { [weak self] _ in DispatchQueue.main.async { self?.update() } }
@@ -71,6 +73,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+
+        if !watch.isRunning {
+            let item = menu.addItem("Start \(watch.name)") { [weak self] in self?.watch.start() }
+            item.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+            menu.addItem(.separator())
+        }
 
         if conflict.bothRunning {
             let item = menu.addItem("AeroSpace Is Running Too – Quit AeroSpace") { [weak self] in self?.conflict.quitAeroSpace() }
@@ -123,6 +131,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     /// screen corner, and a plain `terminate()` skips the cleanup that brings them back. `enable off`
     /// first returns every window to the screen; then the window manager is terminated.
     func quitWindowManager(then completion: @escaping @MainActor () -> Void = {}) {
+        watch.expectingQuit = true
         let cli = store.client.executable
         Task.detached {
             let disable = Process()

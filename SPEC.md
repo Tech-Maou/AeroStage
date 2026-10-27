@@ -506,7 +506,23 @@ Each phase starts with a short alignment.
   a workspace changes. With the original AeroSpace, AeroStage refreshes when the sidebar
   appears.
 
-## 24. Open
+## 24. 1.3.2: window manager quits and restarts
+
+- `WindowManagerWatch` observes `NSWorkspace.runningApplications` (launch/terminate
+  notifications are not posted for LSUIElement apps). While the window manager is not running,
+  the sidebar shows `WindowManagerStopped` with a start button, the menu starts with
+  "Start AeroStage WM", and an unexpected quit posts a notification. Quits started by AeroStage
+  (menu, update) set `expectingQuit`.
+- `StageSnapshot` (window id → workspace, floating ids, app per window, window manager pid,
+  focused workspace, time) is saved in `UserDefaults` after every refresh while connected,
+  only when it changed. When the window manager's pid differs from the snapshot (it
+  restarted), AeroStage waits until it runs for 2 s, moves the matching windows back
+  (`move-node-to-workspace --window-id`), floats the floating ones and focuses the saved
+  workspace. Snapshots older than the last boot are ignored; a window must still belong to
+  the same app.
+- AeroStage WM 0.21.3-stage.4: no ⌘Q/⌘E on its menu items.
+
+## 25. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

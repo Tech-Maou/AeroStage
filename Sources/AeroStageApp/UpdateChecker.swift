@@ -235,14 +235,14 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate, @unchecked Sen
         center?.delegate = self
     }
 
-    func post(title: String, body: String) {
+    func post(id: String = "update", title: String, body: String) {
         guard let center else { return }
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
-            center.add(UNNotificationRequest(identifier: "update", content: content, trigger: nil))
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
         }
     }
 
@@ -251,6 +251,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate, @unchecked Sen
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        guard response.notification.request.identifier == "update" else { return }
         await MainActor.run { onOpen() }
     }
 }
