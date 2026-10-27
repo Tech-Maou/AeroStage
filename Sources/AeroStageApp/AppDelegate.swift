@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sidebar: SidebarController!
     private var commands: StageCommands!
     private var settingsWindow: SettingsWindowController!
+    private var menuBar: MenuBarController!
     private var subscriptions: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -33,9 +34,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let actions = makeActions()
         sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions)
         setUpWindowDragging(actions: actions)
-        settingsWindow = SettingsWindowController { [unowned self] in
-            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem)
+        settingsWindow = SettingsWindowController { [unowned self] navigation in
+            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, navigation: navigation)
         }
+        menuBar = MenuBarController(store: store, settings: settings)
+        menuBar.openSettings = { [unowned self] in settingsWindow.show($0) }
+        menuBar.focusWorkspace = { [unowned self] name in
+            let client = store.client
+            Task { try? await client.workspace(name) }
+        }
+        syncWindowManagerMenuBarItem()
 
         commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
         sidebar.onVisibilityChange = { [unowned self] _ in updateThumbnails() }
@@ -242,6 +250,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 store.restage()
                 sidebar.layout(on: store.sidebarScreen)
                 updateStageCapacity()
+                syncWindowManagerMenuBarItem()
                 applyConfig()
                 updateThumbnails()
             }
@@ -287,6 +296,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         thumbnails.canvas = windowArea(on: screen)
         let stages = store.stages.sorted { $0.isFocused && !$1.isFocused }
         thumbnails.update(windowIDs: stages.flatMap { $0.windows.map(\.windowId) })
+    }
+
+    /// AeroStage WM hides its own menu bar item when told so through its user defaults.
+    private func syncWindowManagerMenuBarItem() {
+        let hide = settings.hideWindowManagerMenuBarItem && settings.showMenuBarItem
+        let defaults = UserDefaults(suiteName: MenuBarController.windowManagerBundleID)
+        if defaults?.object(forKey: "hideMenuBarItem") as? Bool != hide {
+            defaults?.set(hide, forKey: "hideMenuBarItem")
+        }
     }
 
     /// The stage limit follows the sidebar monitor: as many cards as fit at ≥ 70 % preview size.

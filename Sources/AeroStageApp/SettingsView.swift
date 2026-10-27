@@ -2,43 +2,83 @@ import AeroStageCore
 import AppKit
 import SwiftUI
 
+/// Sections of the settings window, grouped by app.
+enum SettingsSection: String, CaseIterable, Hashable {
+    case stageGeneral, stageAppearance, stageMenuBar
+    case wmGeneral, wmKeyboard, wmGaps, wmAdvanced
+
+    static let aeroStage: [SettingsSection] = [.stageGeneral, .stageAppearance, .stageMenuBar]
+    static let windowManager: [SettingsSection] = [.wmGeneral, .wmKeyboard, .wmGaps, .wmAdvanced]
+
+    var title: String {
+        switch self {
+        case .stageGeneral, .wmGeneral: "General"
+        case .stageAppearance: "Appearance"
+        case .stageMenuBar: "Menu Bar"
+        case .wmKeyboard: "Keyboard"
+        case .wmGaps: "Gaps"
+        case .wmAdvanced: "Advanced"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .stageGeneral: "sidebar.right"
+        case .stageAppearance: "paintpalette"
+        case .stageMenuBar: "menubar.rectangle"
+        case .wmGeneral: "macwindow.on.rectangle"
+        case .wmKeyboard: "keyboard"
+        case .wmGaps: "rectangle.split.3x1"
+        case .wmAdvanced: "gearshape.2"
+        }
+    }
+}
+
+/// Which section the settings window shows; set when opening it from the menu bar.
+@MainActor
+final class SettingsNavigation: ObservableObject {
+    @Published var section: SettingsSection? = .stageGeneral
+}
+
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var store: StateStore
     @ObservedObject var config: ConfigManager
     @ObservedObject var thumbnails: ThumbnailService
     @ObservedObject var loginItem: LoginItem
+    @ObservedObject var navigation: SettingsNavigation
 
-    private enum Tab: String, CaseIterable {
-        case general = "General"
-        case appearance = "Appearance"
-        case keyboard = "Keyboard"
-        case aerospace = "AeroSpace"
-    }
-
-    @State private var tab = Tab.general
+    private var usesAeroStageWM: Bool { AeroSpacePaths.reportsWindowChanges(store.client.executable) }
+    /// "AeroStage WM (AeroSpace)" with the fork, "AeroSpace" with the original.
+    private var windowManagerTitle: String { usesAeroStageWM ? "AeroStage WM (AeroSpace)" : "AeroSpace" }
 
     var body: some View {
-        // Own tab bar instead of TabView, whose tabs are always centered on macOS.
-        VStack(alignment: .leading, spacing: 0) {
-            Picker("Section", selection: $tab) {
-                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+        NavigationSplitView {
+            List(selection: $navigation.section) {
+                Section("AeroStage") {
+                    ForEach(SettingsSection.aeroStage, id: \.self) { Label($0.title, systemImage: $0.symbol) }
+                }
+                Section(windowManagerTitle) {
+                    ForEach(SettingsSection.windowManager, id: \.self) { Label($0.title, systemImage: $0.symbol) }
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-
-            switch tab {
-            case .general: general
-            case .appearance: appearance
-            case .keyboard: keyboard
-            case .aerospace: aerospace
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210)
+        } detail: {
+            switch navigation.section ?? .stageGeneral {
+            case .stageGeneral: general
+            case .stageAppearance: appearance
+            case .stageMenuBar: menuBar
+            case .wmGeneral: windowManagerGeneral
+            case .wmKeyboard: keyboard
+            case .wmGaps: gaps
+            case .wmAdvanced: advanced
             }
         }
-        .frame(width: 520)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(minWidth: 760, minHeight: 540)
+        .onAppear {
+            loginItem.refresh()
+            config.readAeroSpaceStartAtLogin()
+        }
     }
 
     // MARK: General: mode, position, monitors, numbering
@@ -54,29 +94,10 @@ struct SettingsView: View {
                         Button("Open Login Items …") { loginItem.openLoginItemsSettings() }
                     }
                 }
-                Toggle("Start the window manager at login", isOn: Binding(
-                    get: { config.aerospaceStartsAtLogin ?? false },
-                    set: { enabled in
-                        let client = store.client
-                        Task { await config.setAeroSpaceStartAtLogin(enabled, client: client) }
-                    }))
-                .disabled(config.aerospaceStartsAtLogin == nil)
             } header: {
                 Text("Startup")
             } footer: {
-                VStack(alignment: .leading, spacing: 2) {
-                    if let error = loginItem.lastError { Text(error) }
-                    if config.aerospaceStartsAtLogin == nil {
-                        Text("start-at-login was not found in \(config.configURL.path).")
-                    } else {
-                        Text("Sets start-at-login in the window manager config (~/.aerospace.toml, used by AeroStage WM and AeroSpace).")
-                    }
-                }
-                .foregroundStyle(.secondary)
-            }
-            .onAppear {
-                loginItem.refresh()
-                config.readAeroSpaceStartAtLogin()
+                if let error = loginItem.lastError { Text(error).foregroundStyle(.secondary) }
             }
 
             Section {
@@ -261,21 +282,105 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
-    // MARK: AeroSpace
+    // MARK: Menu bar
 
-    private var aerospace: some View {
+    private var menuBar: some View {
+        Form {
+            Section {
+                Toggle("Show AeroStage in the menu bar", isOn: $settings.showMenuBarItem)
+                Toggle("Show the number of the visible stage", isOn: $settings.showStageNumber)
+                    .disabled(!settings.showMenuBarItem)
+            } footer: {
+                Text("The menu lists the stages and opens the settings of both apps. Without the icon, the settings are still in the sidebar's context menu.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Hide AeroStage WM's own menu bar item", isOn: $settings.hideWindowManagerMenuBarItem)
+                    .disabled(!usesAeroStageWM)
+            } footer: {
+                Text(usesAeroStageWM
+                     ? "AeroStage WM's item shows its internal workspace name, not the stage number. It stays visible while AeroStage WM lacks the Accessibility permission."
+                     : "Only available with AeroStage WM.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    // MARK: Window manager
+
+    private var windowManagerGeneral: some View {
+        Form {
+            Section {
+                Toggle("Start \(usesAeroStageWM ? "AeroStage WM" : "AeroSpace") at login", isOn: Binding(
+                    get: { config.aerospaceStartsAtLogin ?? false },
+                    set: { enabled in
+                        let client = store.client
+                        Task { await config.setAeroSpaceStartAtLogin(enabled, client: client) }
+                    }))
+                .disabled(config.aerospaceStartsAtLogin == nil)
+            } header: {
+                Text("Startup")
+            } footer: {
+                Text(config.aerospaceStartsAtLogin == nil
+                     ? "start-at-login was not found in \(config.configURL.path)."
+                     : "Sets start-at-login in the window manager config.")
+                    .foregroundStyle(.secondary)
+            }
+            Section("Status") {
+                LabeledContent("Window manager", value: windowManagerTitle)
+                LabeledContent("Connection", value: store.isConnected ? "Connected" : "Not reachable")
+                LabeledContent("Closed and minimized windows",
+                               value: usesAeroStageWM ? "Reported as events" : "Noticed by a fallback check")
+                LabeledContent("Config file", value: config.configURL.path)
+            }
+            if !usesAeroStageWM {
+                Section {
+                    Text("AeroStage runs reliably only with AeroStage WM, a fork of AeroSpace that reports closed, minimized and moved windows.")
+                    Link("About AeroStage WM", destination: URL(string: "https://github.com/Tech-Maou/AeroStage-WM")!)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var gaps: some View {
+        Form {
+            Section {
+                Stepper("Between windows: \(settings.innerGap) pt", value: $settings.innerGap, in: 0...40)
+                Stepper("To the screen edge: \(settings.outerGap) pt", value: $settings.outerGap, in: 0...40)
+            } footer: {
+                Text("Written to the managed gaps section of the config. In reserved mode the sidebar's space is added on its side.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!settings.manageConfig)
+        }
+        .formStyle(.grouped)
+    }
+
+    private var advanced: some View {
         Form {
             Section {
                 Toggle("Manage config (gaps and shortcuts)", isOn: $settings.manageConfig)
-                Stepper("Gap between windows: \(settings.innerGap) pt", value: $settings.innerGap, in: 0...40)
-                Stepper("Gap to screen edge: \(settings.outerGap) pt", value: $settings.outerGap, in: 0...40)
-                TextField("Path to window manager CLI", text: $settings.aerospacePath, prompt: Text("automatic: aerostage-wm, then aerospace"))
             } footer: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(store.isConnected ? "Connected" : "Not reachable")
-                    Text("\(config.configURL.path): \(config.status)")
+                Text("AeroStage only writes between its markers in the config file. Turned off, gaps and shortcuts are left to you.")
+                    .foregroundStyle(.secondary)
+            }
+            Section("Config file") {
+                LabeledContent("Status", value: config.status)
+                HStack {
+                    Button("Open in Editor") { NSWorkspace.shared.open(config.configURL) }
+                    Button("Reload") {
+                        let client = store.client
+                        Task { try? await client.reloadConfig() }
+                    }
                 }
-                .foregroundStyle(.secondary)
+            }
+            Section {
+                TextField("Path to window manager CLI", text: $settings.aerospacePath,
+                          prompt: Text("automatic: aerostage-wm, then aerospace"))
+            } footer: {
+                Text("In use: \(store.client.executable)").foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -310,16 +415,20 @@ struct SettingsView: View {
 final class SettingsWindowController {
     private var window: NSWindow?
     private let makeView: () -> SettingsView
+    let navigation = SettingsNavigation()
 
-    init(makeView: @escaping () -> SettingsView) {
-        self.makeView = makeView
+    init(makeView: @escaping (SettingsNavigation) -> SettingsView) {
+        let navigation = self.navigation
+        self.makeView = { makeView(navigation) }
     }
 
-    func show() {
+    func show(_ section: SettingsSection = .stageGeneral) {
+        navigation.section = section
         if window == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: makeView()))
             window.title = "AeroStage Settings"
-            window.styleMask = [.titled, .closable]
+            window.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
+            window.setContentSize(NSSize(width: 820, height: 600))
             window.isReleasedWhenClosed = false
             window.center()
             self.window = window

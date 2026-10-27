@@ -56,7 +56,9 @@ the window manager, but clicking a stage or a window works just as well.
 - **Customizable look:** background color, opacity and optional blur, title color and size,
   icon size.
 - **Launch at login** for AeroStage and AeroSpace, switchable in the settings.
-- Settings in four tabs: General, Appearance, Keyboard, AeroSpace.
+- Menu bar icon with the number of the visible stage; its menu switches stages, opens the
+  settings and quits AeroStage, AeroStage WM or both.
+- Settings with a sidebar, grouped by app: AeroStage and AeroStage WM (AeroSpace).
 - No Dock icon, never steals keyboard focus.
 
 **Planned**

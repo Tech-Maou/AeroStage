@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Menu bar item: a monochrome AeroStage icon with the number of the visible stage. Its menu
+  lists the stages, opens the settings of AeroStage and of the window manager, switches view
+  and mode, and quits AeroStage, AeroStage WM or both. With AeroStage WM, its own menu bar
+  item (which shows the internal workspace name) is hidden.
+- Settings window with a sidebar: **AeroStage** (General, Appearance, Menu Bar) and
+  **AeroStage WM (AeroSpace)** (General, Keyboard, Gaps, Advanced). With the original
+  AeroSpace the second group is called "AeroSpace".
+
 ## 1.0.1
 
 - The sidebar moves to the right position right away when monitors change, and after

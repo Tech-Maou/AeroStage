@@ -430,7 +430,23 @@ Each phase starts with a short alignment.
   are not notarized.
 - Versions: AeroStage 1.0.0, AeroStage WM 0.21.3-stage.1.
 
-## 20. Open
+## 20. 1.1: menu bar and settings by app
+
+- `MenuBarController`: template icon (sidebar outline) plus the visible stage's position;
+  menu with stages, "AeroStage Settings …", "AeroStage WM Settings …" (or "AeroSpace
+  Settings …"), View, Mode, Quit AeroStage / Quit AeroStage WM / Quit Both. Can be hidden;
+  the sidebar's context menu keeps a Settings entry (menu bar items can disappear behind the
+  notch).
+- AeroStage WM 0.21.3-stage.2 hides its own menu bar item when its user default
+  `hideMenuBarItem` is true (`MenuBarExtra(isInserted:)`), except without Accessibility
+  permission. AeroStage writes that default.
+- Settings window: `NavigationSplitView` with the groups AeroStage (General, Appearance, Menu
+  Bar) and AeroStage WM (AeroSpace) (General, Keyboard, Gaps, Advanced). The second group is
+  named "AeroSpace" when the original is used, because gaps and shortcuts still apply.
+- Releases: 1.0.1 (fixes, current `dev`), 1.1.0 (this, branch `next`), 1.2.0 (window manager
+  settings from the config: layout, behavior).
+
+## 21. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

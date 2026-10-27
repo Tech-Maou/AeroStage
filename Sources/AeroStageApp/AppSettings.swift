@@ -46,6 +46,12 @@ final class AppSettings: ObservableObject {
     /// Monitor names in descending priority; `MonitorResolver.builtinToken` stands for the built-in display.
     @Published var monitorPriority: [String] { didSet { defaults.set(monitorPriority, forKey: "monitorPriority") } }
     @Published var numbering: NumberingMode { didSet { defaults.set(numbering.rawValue, forKey: "numbering") } }
+    @Published var showMenuBarItem: Bool { didSet { defaults.set(showMenuBarItem, forKey: "showMenuBarItem") } }
+    @Published var showStageNumber: Bool { didSet { defaults.set(showStageNumber, forKey: "showStageNumber") } }
+    /// AeroStage WM only: hide its own menu bar item, AeroStage shows a better one.
+    @Published var hideWindowManagerMenuBarItem: Bool {
+        didSet { defaults.set(hideWindowManagerMenuBarItem, forKey: "hideWindowManagerMenuBarItem") }
+    }
     /// How many stages fit on the current sidebar monitor; computed, not stored.
     @Published var maxStages = 5
     @Published var modifier: String { didSet { defaults.set(modifier, forKey: "modifier") } }
@@ -99,6 +105,9 @@ final class AppSettings: ObservableObject {
         textColor = NSColor(storedString: d.string(forKey: "textColor")) ?? .white
         titleSize = d.object(forKey: "titleSize") as? Double ?? 14
         iconScale = d.object(forKey: "iconScale") as? Double ?? 1
+        showMenuBarItem = d.object(forKey: "showMenuBarItem") as? Bool ?? true
+        showStageNumber = d.object(forKey: "showStageNumber") as? Bool ?? true
+        hideWindowManagerMenuBarItem = d.object(forKey: "hideWindowManagerMenuBarItem") as? Bool ?? true
         cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
         thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
     }
