@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var commands: StageCommands!
     private var settingsWindow: SettingsWindowController!
     private var menuBar: MenuBarController!
+    private var updates: UpdateChecker!
+    private var updateWindow: UpdateWindowController!
     private var subscriptions: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,21 +39,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let actions = makeActions()
         sidebar = SidebarController(store: store, settings: settings, thumbnails: thumbnails, dragState: dragState, actions: actions)
         setUpWindowDragging(actions: actions)
+        updates = UpdateChecker(settings: settings)
         settingsWindow = SettingsWindowController { [unowned self] navigation in
-            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, navigation: navigation)
+            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, updates: updates, navigation: navigation)
         }
-        menuBar = MenuBarController(store: store, settings: settings)
+        menuBar = MenuBarController(store: store, settings: settings, updates: updates)
         menuBar.openSettings = { [unowned self] in settingsWindow.show($0) }
         menuBar.focusWorkspace = { [unowned self] name in
             let client = store.client
             Task { try? await client.workspace(name) }
         }
         syncWindowManagerMenuBarItem()
+        updateWindow = UpdateWindowController(checker: updates) { [unowned self] in
+            UpdateInstaller.install(updates.updates) { menuBar.quitWindowManager(then: $0) }
+        }
+        updates.showUpdates = { [unowned self] in updateWindow.show() }
+        menuBar.showUpdates = updates.showUpdates
+        updates.start()
 
         commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
         sidebar.onVisibilityChange = { [unowned self] _ in updateThumbnails() }
         sidebar.onMenuTrackingChange = { [unowned self] open in thumbnails.isPaused = open }
         commands.openSettings = { [unowned self] in settingsWindow.show() }
+        commands.checkForUpdates = { [unowned self] in
+            let updates = updates!
+            Task { await updates.check(userInitiated: true) }
+        }
         commands.thumbnailStatus = { [unowned self] in
             let access = switch thumbnails.access {
             case .granted: "allowed"

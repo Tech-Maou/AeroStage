@@ -88,6 +88,21 @@ The cask installs AeroStage WM as a dependency. AeroStage is not notarized by Ap
 project does not use a paid Apple developer account, so the cask removes the quarantine
 attribute to let macOS launch the app.
 
+### Updates
+
+Once a day AeroStage asks GitHub for new releases of AeroStage and AeroStage WM. When there is
+one, you get a notification, the menu bar icon shows a dot and its menu starts with
+**Update Available**. **Update Now** returns all windows to the screen, quits both apps,
+runs `brew upgrade` and opens them again; the log is in `~/Library/Logs/AeroStage/update.log`.
+Turn the check off or run it by hand under **Settings → General → Updates** (or
+`aerostage update`). Only the two public release URLs on `api.github.com` are requested.
+
+Updating in the terminal works as well; the casks quit the apps first and reopen them:
+
+```bash
+brew update && brew upgrade --cask aerostage aerostage-wm
+```
+
 ### From source
 
 The Command Line Tools are enough (`xcode-select --install`); Xcode is not required.
@@ -175,6 +190,7 @@ display). With many stages all previews shrink evenly, so every stage stays visi
 | `focus <n>` / `move <n>` | Switch stage / move window |
 | `new`, `next`, `prev` | New stage, next, previous |
 | `toggle`, `settings` | Show/hide sidebar, open settings |
+| `update` | Check for updates and show the result |
 | `reload`, `status`, `quit` | Re-sync, show status, quit |
 
 If AeroStage is not running, the CLI passes `focus`, `move`, `next` and `prev` straight to

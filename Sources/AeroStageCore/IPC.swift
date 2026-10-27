@@ -2,7 +2,7 @@ import Foundation
 
 /// Commands from the `aerostage` CLI to the running app.
 public enum IPCCommand: String, Codable, CaseIterable, Sendable {
-    case focus, move, new, next, prev, toggle, settings, reload, quit, status
+    case focus, move, new, next, prev, toggle, settings, update, reload, quit, status
 }
 
 public struct IPCRequest: Codable, Sendable, Equatable {

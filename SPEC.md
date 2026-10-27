@@ -457,7 +457,29 @@ Each phase starts with a short alignment.
   the file disable their control instead of being added.
 - New sections: Layout and Behavior; Keyboard gains key positions, Advanced the auto reload.
 
-## 22. Open
+## 22. 1.3: updates
+
+- `UpdateChecker`: 30 s after launch and then hourly, if the last check is 24 h old and
+  "Check for updates automatically" is on, requests
+  `api.github.com/repos/Tech-Maou/{AeroStage,AeroStage-WM}/releases/latest` and compares
+  `tag_name` with the installed `CFBundleShortVersionString` (`ReleaseVersion`: numbers in
+  order, so `0.21.3-stage.10` > `0.21.3-stage.2`). AeroStage WM is skipped when it is not
+  installed (original AeroSpace).
+- Found updates: one notification per new version, a dot in the menu bar glyph, "Update
+  Available …" at the top of the menu, status in Settings → General → Updates. "Check for
+  Updates …" in the menu, "Check Now" in the settings and `aerostage update` always show the
+  update window, also when everything is up to date.
+- Update window: release notes per app, **Update Now** when every outdated app has a folder
+  in Homebrew's Caskroom, otherwise **Open Release Page**.
+- Update Now: `enable off` and quit AeroStage WM (only if it is updated and running), start a
+  detached `/bin/sh` script, quit AeroStage. The script waits for AeroStage to exit (so brew
+  neither finds it running nor runs inside it), runs `brew update` and
+  `brew upgrade --cask …`, writes the exit code to `~/Library/Logs/AeroStage/update-status`
+  and reopens both apps. A non-zero code is reported on the next launch.
+- Casks: `uninstall quit:` for both apps. On `brew upgrade` Homebrew quits the running app
+  (AeroStage WM then returns its windows to the screen) and reopens it afterwards.
+
+## 23. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

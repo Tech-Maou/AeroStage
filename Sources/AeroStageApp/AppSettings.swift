@@ -52,6 +52,8 @@ final class AppSettings: ObservableObject {
     @Published var hideWindowManagerMenuBarItem: Bool {
         didSet { defaults.set(hideWindowManagerMenuBarItem, forKey: "hideWindowManagerMenuBarItem") }
     }
+    /// Once a day, ask GitHub for new releases of AeroStage and AeroStage WM.
+    @Published var checkForUpdates: Bool { didSet { defaults.set(checkForUpdates, forKey: "checkForUpdates") } }
     /// How many stages fit on the current sidebar monitor; computed, not stored.
     @Published var maxStages = 5
     @Published var modifier: String { didSet { defaults.set(modifier, forKey: "modifier") } }
@@ -108,6 +110,7 @@ final class AppSettings: ObservableObject {
         showMenuBarItem = d.object(forKey: "showMenuBarItem") as? Bool ?? true
         showStageNumber = d.object(forKey: "showStageNumber") as? Bool ?? true
         hideWindowManagerMenuBarItem = d.object(forKey: "hideWindowManagerMenuBarItem") as? Bool ?? true
+        checkForUpdates = d.object(forKey: "checkForUpdates") as? Bool ?? true
         cardStyle = CardStyle(rawValue: d.string(forKey: "cardStyle") ?? "") ?? .thumbnails
         thumbnailInterval = d.object(forKey: "thumbnailInterval") as? Double ?? 3
     }

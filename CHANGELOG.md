@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0
+
+- Update check: once a day AeroStage asks GitHub for new releases of AeroStage and
+  AeroStage WM. A new version shows a notification, a dot on the menu bar icon and
+  **Update Available** at the top of its menu.
+- **Update Now** returns all windows to the screen, quits both apps, updates them with
+  Homebrew and opens them again. Without Homebrew it opens the release page.
+- Settings → General → Updates: turn the automatic check off, check now, see the status.
+  The menu has **Check for Updates …**, the CLI `aerostage update`.
+- The Homebrew casks quit the apps before upgrading and reopen them afterwards, also when
+  updating in the terminal.
+
 ## 1.2.0
 
 - Window manager settings without editing the config file:

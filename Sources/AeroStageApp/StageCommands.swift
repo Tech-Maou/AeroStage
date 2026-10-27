@@ -8,6 +8,7 @@ final class StageCommands {
     private let settings: AppSettings
     var toggleSidebar: () -> Void = {}
     var openSettings: () -> Void = {}
+    var checkForUpdates: () -> Void = {}
     var reload: () -> Void = {}
     var thumbnailStatus: () -> String = { "" }
     var startupStatus: () -> String = { "" }
@@ -52,6 +53,8 @@ final class StageCommands {
             toggleSidebar()
         case .settings:
             openSettings()
+        case .update:
+            checkForUpdates()
         case .reload:
             reload()
         case .quit:

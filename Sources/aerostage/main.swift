@@ -12,6 +12,7 @@ Usage: aerostage <command>
   next | prev  Next or previous stage
   toggle       Show or hide the sidebar
   settings     Open settings
+  update       Check for updates and show the result
   reload       Re-sync state and the AeroSpace config
   status       Show status
   quit         Quit AeroStage

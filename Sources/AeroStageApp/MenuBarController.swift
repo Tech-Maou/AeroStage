@@ -10,16 +10,22 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     private let store: StateStore
     private let settings: AppSettings
+    private let updates: UpdateChecker
     private var item: NSStatusItem?
     private var subscriptions: Set<AnyCancellable> = []
 
     var openSettings: (SettingsSection) -> Void = { _ in }
     var focusWorkspace: (String) -> Void = { _ in }
+    var showUpdates: () -> Void = {}
 
-    init(store: StateStore, settings: AppSettings) {
+    init(store: StateStore, settings: AppSettings, updates: UpdateChecker) {
         self.store = store
         self.settings = settings
+        self.updates = updates
         super.init()
+        updates.$updates
+            .sink { [weak self] _ in DispatchQueue.main.async { self?.update() } }
+            .store(in: &subscriptions)
         store.$stages
             .sink { [weak self] _ in DispatchQueue.main.async { self?.update() } }
             .store(in: &subscriptions)
@@ -43,13 +49,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
         if item == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            item.button?.image = Self.glyph
             item.button?.imagePosition = .imageLeading
             let menu = NSMenu()
             menu.delegate = self
             item.menu = menu
             self.item = item
         }
+        // A dot in the glyph while an update is available.
+        item?.button?.image = updates.updates.isEmpty ? Self.glyph : Self.glyphWithDot
         let active = store.stages.first(where: \.isFocused)
         let number = settings.showStageNumber ? active.map { $0.label(for: settings.numbering) } ?? "" : ""
         item?.button?.attributedTitle = NSAttributedString(
@@ -62,6 +69,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+
+        if !updates.updates.isEmpty {
+            let names = updates.updates.map { "\($0.component.title) \($0.release.version)" }.joined(separator: ", ")
+            menu.addItem("Update Available: \(names) …") { [weak self] in self?.showUpdates() }
+            menu.addItem(.separator())
+        }
 
         if store.stages.isEmpty {
             menu.addItem(disabled: store.isConnected ? "No stages" : "\(windowManagerName) not reachable")
@@ -76,6 +89,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem("AeroStage Settings …") { [weak self] in self?.openSettings(.stageGeneral) }
         menu.addItem("\(windowManagerName) Settings …") { [weak self] in self?.openSettings(.wmGeneral) }
+        menu.addItem("Check for Updates …") { [weak self] in
+            guard let updates = self?.updates else { return }
+            Task { await updates.check(userInitiated: true) }
+        }
 
         let view = NSMenu()
         for style in CardStyle.allCases {
@@ -118,8 +135,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    /// The sidebar as an outline: a window on the left, three stage cards on the right.
-    private static let glyph: NSImage = {
+    private static let glyph = makeGlyph(dot: false)
+    private static let glyphWithDot = makeGlyph(dot: true)
+
+    /// The sidebar as an outline: a window on the left, three stage cards on the right. With
+    /// `dot`, a filled circle sits on the window's top right corner.
+    private static func makeGlyph(dot: Bool) -> NSImage {
         let image = NSImage(size: NSSize(width: 20, height: 15), flipped: true) { _ in
             NSColor.black.setStroke()
             NSColor.black.setFill()
@@ -130,11 +151,18 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             for row in 0..<3 {
                 NSBezierPath(roundedRect: NSRect(x: 14.5, y: 1.5 + CGFloat(row) * 4.4, width: 4.5, height: 3.4), xRadius: 1, yRadius: 1).fill()
             }
+            if dot {
+                // Cut a ring out of the outline first so the dot stays readable.
+                NSGraphicsContext.current?.compositingOperation = .clear
+                NSBezierPath(ovalIn: NSRect(x: 7.5, y: 0, width: 7, height: 7)).fill()
+                NSGraphicsContext.current?.compositingOperation = .sourceOver
+                NSBezierPath(ovalIn: NSRect(x: 8.75, y: 1.25, width: 4.5, height: 4.5)).fill()
+            }
             return true
         }
         image.isTemplate = true
         return image
-    }()
+    }
 }
 
 /// Menu items with a closure instead of target/action.

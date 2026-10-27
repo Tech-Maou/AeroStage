@@ -225,3 +225,30 @@ import Testing
         #expect(throws: IPCError.self) { try IPC.makeAddress(String(repeating: "x", count: 200)) }
     }
 }
+
+@Suite struct UpdateTests {
+    @Test func comparesVersionsByNumbers() {
+        #expect(ReleaseVersion("1.2.0") < ReleaseVersion("1.10.0"))
+        #expect(ReleaseVersion("v1.3.0") == ReleaseVersion("1.3"))
+        #expect(ReleaseVersion("0.21.3-stage.2") < ReleaseVersion("0.21.3-stage.10"))
+        #expect(ReleaseVersion("0.21.3-stage.10") < ReleaseVersion("0.22.0-stage.1"))
+        #expect(!(ReleaseVersion("1.3.0") < ReleaseVersion("1.2.9")))
+        #expect(ReleaseVersion("v0.21.3-stage.1").description == "0.21.3-stage.1")
+    }
+
+    @Test func offersOnlyNewerReleases() {
+        let release = Release(tagName: "v1.3.0", htmlURL: URL(string: "https://example.com")!, body: nil)
+        #expect(UpdateComponent.update(installed: "1.2.0", latest: release) == release)
+        #expect(UpdateComponent.update(installed: "1.3.0", latest: release) == nil)
+        #expect(UpdateComponent.update(installed: "1.4.0", latest: release) == nil)
+        #expect(UpdateComponent.update(installed: nil, latest: release) == nil)
+    }
+
+    @Test func decodesGitHubRelease() throws {
+        let json = #"{"tag_name": "v0.21.3-stage.2", "html_url": "https://github.com/Tech-Maou/AeroStage-WM/releases/tag/v0.21.3-stage.2", "body": "- Fix", "draft": false}"#
+        let release = try JSONDecoder().decode(Release.self, from: Data(json.utf8))
+        #expect(release.version.description == "0.21.3-stage.2")
+        #expect(release.body == "- Fix")
+        #expect(UpdateComponent.windowManager.caskToken == "aerostage-wm")
+    }
+}

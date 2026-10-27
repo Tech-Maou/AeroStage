@@ -50,6 +50,7 @@ struct SettingsView: View {
     @ObservedObject var config: ConfigManager
     @ObservedObject var thumbnails: ThumbnailService
     @ObservedObject var loginItem: LoginItem
+    @ObservedObject var updates: UpdateChecker
     @ObservedObject var navigation: SettingsNavigation
 
     private var usesAeroStageWM: Bool { AeroSpacePaths.reportsWindowChanges(store.client.executable) }
@@ -141,6 +142,26 @@ struct SettingsView: View {
                 Text("Startup")
             } footer: {
                 if let error = loginItem.lastError { Text(error).foregroundStyle(.secondary) }
+            }
+
+            Section {
+                Toggle("Check for updates automatically", isOn: $settings.checkForUpdates)
+                LabeledContent("Status") {
+                    HStack {
+                        Text(updateStatus).foregroundStyle(.secondary)
+                        if updates.isChecking { ProgressView().controlSize(.small) }
+                        if !updates.updates.isEmpty {
+                            Button("Show Update …") { updates.showUpdates() }
+                        }
+                        Button("Check Now") { Task { await updates.check(userInitiated: true) } }
+                            .disabled(updates.isChecking)
+                    }
+                }
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Once a day, AeroStage asks GitHub for new releases of AeroStage and AeroStage WM. Updates are installed with Homebrew.")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -498,6 +519,15 @@ struct SettingsView: View {
         return (candidates + [MonitorResolver.builtinToken]).reduce(into: []) { result, entry in
             if !result.contains(entry), !settings.monitorPriority.contains(entry) { result.append(entry) }
         }
+    }
+
+    private var updateStatus: String {
+        if let error = updates.lastError { return error }
+        if !updates.updates.isEmpty {
+            return updates.updates.map { "\($0.component.title) \($0.release.version) available" }.joined(separator: ", ")
+        }
+        guard let last = updates.lastCheck else { return "Not checked yet" }
+        return "Up to date, checked \(last.formatted(.relative(presentation: .named)))"
     }
 
     private func isConnected(_ entry: String) -> Bool {
