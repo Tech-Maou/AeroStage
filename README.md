@@ -19,8 +19,6 @@ the window manager, but clicking a stage or a window works just as well.
 
 ## Features
 
-**Available (v1.0)**
-
 - Two modes:
   - **Overlay** (default): the sidebar slides in when the mouse touches the screen edge
     (or via shortcut), floats above your windows and hides again when the mouse leaves.
@@ -42,8 +40,11 @@ the window manager, but clicking a stage or a window works just as well.
 - **Drag real windows:** grab a window by its title bar and drag it to the screen edge. The
   sidebar slides out, and dropping the window on a card or on **New Stage** moves it there.
 - **Context menus:** right-click a window to focus it, move it to the current or a new stage,
-  toggle floating/tiling, or close it; right-click a card to switch to it, change its layout
-  (side by side, accordion, reset) or close the whole stage.
+  switch it between **Tiling** and **Floating** (the current state has a checkmark), or close
+  it; right-click a card to switch to it, change its layout (side by side, accordion, reset)
+  or close the whole stage.
+- Floating windows carry a small neutral mark (two overlapping windows) in the top left
+  corner of their thumbnail or icon.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
   the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
 - When the last window of the visible stage is closed, minimized or moved away, AeroStage
@@ -55,17 +56,22 @@ the window manager, but clicking a stage or a window works just as well.
   plain AeroSpace a lightweight window-server check twice a second covers the visible stage.
 - **Customizable look:** background color, opacity and optional blur, title color and size,
   icon size.
-- **Launch at login** for AeroStage and AeroSpace, switchable in the settings.
+- **Stages survive a window manager restart:** AeroStage remembers which window is on which
+  stage. When AeroStage WM starts again (after a quit, a crash or an update), the windows go
+  back to their stages. If it is not running, the sidebar says so and offers to start it.
+- **Launch at login** for AeroStage and the window manager, switchable in the settings.
 - Menu bar icon with the number of the visible stage; its menu switches stages, opens the
   settings and quits AeroStage, AeroStage WM or both.
-- Settings with a sidebar, grouped by app: AeroStage and AeroStage WM (AeroSpace). The
-  window manager's common options (layout, behavior, key positions) are regular settings;
-  they are written into `~/.aerospace.toml` line by line.
+- Settings with a sidebar, grouped by app: AeroStage and AeroStage WM (AeroSpace), plus
+  **Versions & Updates** at the bottom. The window manager's common options (layout,
+  behavior, key positions) are regular settings; they are written into `~/.aerospace.toml`
+  line by line.
+- **Update check** once a day, installed with one click through Homebrew (see
+  [Updates](#updates)).
+- Warns when the original AeroSpace runs at the same time as AeroStage WM.
 - No Dock icon, never steals keyboard focus.
 
-**Planned**
-
-- Small fixes from daily use; ideas are welcome as issues.
+Ideas are welcome as issues.
 
 Details are in the [specification](SPEC.md).
 
@@ -78,15 +84,17 @@ Details are in the [specification](SPEC.md).
 
 ## Installation
 
-### Homebrew (from the first release on)
+### Homebrew
 
 ```bash
 brew install --cask tech-maou/tap/aerostage
 ```
 
-The cask installs AeroStage WM as a dependency. AeroStage is not notarized by Apple because the
-project does not use a paid Apple developer account, so the cask removes the quarantine
-attribute to let macOS launch the app.
+This installs AeroStage and, as a dependency, AeroStage WM, and puts the `aerostage` and
+`aerostage-wm` commands on your `PATH`. If the original AeroSpace is installed, remove it
+first (see [Switching from AeroSpace](#switching-from-aerospace)). The apps are not notarized
+by Apple because the project does not use a paid Apple developer account, so the casks remove
+the quarantine attribute to let macOS launch them.
 
 ### Switching from AeroSpace
 
@@ -129,19 +137,22 @@ cd AeroStage
 scripts/install.sh
 ```
 
-`install.sh` builds the app, signs it, copies it to `/Applications` and launches it.
+`install.sh` builds the app, signs it, copies it to `/Applications` and launches it. Install
+AeroStage WM separately, from its [releases](https://github.com/Tech-Maou/AeroStage-WM/releases)
+or its source. Updates of a build from source are offered as a download, not installed.
 
 ## Setup
 
-1. Install [AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM), launch it and allow it
-   under **System Settings → Privacy & Security → Accessibility**. Quit and uninstall the
-   original AeroSpace first; two window managers must not run at the same time.
-2. Launch AeroStage. On first launch:
+1. Launch **AeroStage WM** and allow it under **System Settings → Privacy & Security →
+   Accessibility**. It is the window manager; AeroStage itself needs no Accessibility
+   permission.
+2. Launch **AeroStage**. On first launch:
    - AeroStage creates `~/.aerospace.toml` if none exists.
    - In an existing config only the marked sections are changed (see below).
    - The current main monitor is added to the priority list, followed by the built-in display.
    - macOS asks for **Screen Recording** permission, which is needed for thumbnails.
-3. Open the settings: right-click the sidebar → **Settings …**
+3. Open the settings from the menu bar icon or by right-clicking the sidebar → **Settings …**
+   There you can also let both apps start at login.
 
 ### Managed AeroSpace config
 
@@ -169,7 +180,8 @@ Everything outside the markers stays untouched.
 
 ## Usage
 
-All shortcuts use one modifier (`mod` below), chosen under **Settings → Keyboard**:
+All shortcuts use one modifier (`mod` below), chosen under **Settings → AeroStage WM →
+Keyboard**:
 
 | Preset | Modifier | For |
 |---|---|---|
@@ -198,6 +210,7 @@ display). With many stages all previews shrink evenly, so every stage stays visi
 ### Command line
 
 ```bash
+aerostage <command>    # installed with Homebrew; otherwise
 /Applications/AeroStage.app/Contents/Helpers/aerostage <command>
 ```
 
@@ -207,18 +220,23 @@ display). With many stages all previews shrink evenly, so every stage stays visi
 | `new`, `next`, `prev` | New stage, next, previous |
 | `toggle`, `settings` | Show/hide sidebar, open settings |
 | `update` | Check for updates and show the result |
-| `reload`, `status`, `quit` | Re-sync, show status, quit |
+| `reload`, `status`, `quit` | Re-sync, show status (connection, window manager, monitor, stages, permissions), quit |
 
 If AeroStage is not running, the CLI passes `focus`, `move`, `next` and `prev` straight to
 AeroSpace, so the shortcuts keep working.
 
 ## Permissions
 
-| Permission | Used for |
-|---|---|
-| Screen Recording | Window thumbnails |
+| App | Permission | Used for |
+|---|---|---|
+| AeroStage WM | Accessibility | Moving and resizing windows (required) |
+| AeroStage | Screen Recording | Window thumbnails |
+| AeroStage | Notifications | Update available, window manager quit (optional) |
 
-Without it the sidebar shows app icons. Grant it under **System Settings → Privacy &
+Both apps are signed with the same long-lived certificate, so macOS keeps these permissions
+across updates.
+
+Without Screen Recording the sidebar shows app icons. Grant it under **System Settings → Privacy &
 Security → Screen & System Audio Recording**, or via the button in the AeroStage settings.
 
 If thumbnails do not appear even though the permission is granted (`aerostage status`
@@ -249,7 +267,8 @@ correct.
   event, `workspace-windows-changed`, that covers all these cases and stays silent while the
   screen is locked; AeroStage then needs no check at all.
 - AeroStage WM is a **thin fork**: AeroSpace's code with as few, well-separated changes as
-  possible (new name, extra `subscribe` events, a build script). It keeps AeroSpace's
+  possible: new name, the extra `subscribe` event, a menu bar item that AeroStage can hide,
+  windows returned to the screen on every regular quit, and a build script. It keeps AeroSpace's
   history, so new AeroSpace releases can be taken over by rebasing these changes.
 - It has its **own name** because the MIT license covers the code but grants no rights to the
   name "AeroSpace", and because an app called AeroSpace with a different behavior would be
@@ -261,24 +280,33 @@ correct.
 
 - AeroSpace tiles every window to fill its stage; windows cannot be snapped to a side with
   the mouse. Arrange them with `mod-shift-h/j/k/l` and switch layouts with `mod-slash` or
-  `mod-comma`. A window that floats above the others can be tiled again via its context
-  menu (**Toggle Floating / Tiling**) or with service mode (`mod-shift-semicolon`, then `f`).
+  `mod-comma`. A window that floats above the others (marked in the sidebar) is tiled again
+  via its context menu (**Tiling**) or with service mode (`mod-shift-semicolon`, then `f`).
 
 - Some apps cannot be made narrower than a certain width (Firefox, for example, ~600 pt). With
   many windows side by side, such windows overlap their neighbor slightly. This is AeroSpace
   behavior with minimum window sizes and happens sooner in reserved mode. Use overlay mode or
   the accordion layout (`mod-comma`).
 
+- After a restart of the Mac all windows start on one stage. The stage assignment is only
+  restored when the window manager restarts while the windows stay open, because macOS gives
+  windows new ids after a reboot.
+
+- "Update Now" needs the Homebrew installation. With a build from source the update window
+  links to the release page.
+
 ## Uninstall
 
 ```bash
-/Applications/AeroStage.app/Contents/Helpers/aerostage quit
-rm -rf /Applications/AeroStage.app
-defaults delete io.github.tech-maou.AeroStage
+brew uninstall --cask aerostage aerostage-wm          # keeps settings
+brew uninstall --zap --cask aerostage aerostage-wm    # also removes settings
 ```
 
+Without Homebrew: quit AeroStage (`aerostage quit`), delete `/Applications/AeroStage.app` and
+run `defaults delete io.github.tech-maou.AeroStage`.
+
 Then restore `~/.aerospace.toml` from the backup `~/.aerospace.toml.aerostage-backup` or adjust
-the marked sections yourself.
+the marked sections yourself. Neither uninstall removes the config or its backup.
 
 ## Development
 
@@ -301,8 +329,9 @@ section of the changelog.
 The app icon is drawn by `swift scripts/make-icons.swift` (it also draws AeroStage WM's icon).
 Release notes are in the [changelog](CHANGELOG.md).
 
-`bundle.sh` signs with the code signing certificate **"AeroStage Dev"** if present, otherwise
-ad-hoc. With a stable certificate the Screen Recording permission survives every rebuild.
+`bundle.sh` signs with **"AeroStage Release"** if present, otherwise **"AeroStage Dev"**,
+otherwise ad-hoc. With a stable certificate the Screen Recording permission survives every
+rebuild.
 
 To create one:
 1. Open **Keychain Access**.

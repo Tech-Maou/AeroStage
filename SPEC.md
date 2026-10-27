@@ -1,12 +1,13 @@
 # AeroStage – Specification
 
-Status: **1.0**, phases 0–4 complete
+Status: **1.3.3**. Sections 1–8 describe the current state; sections 9 and later record the
+findings and decisions per version.
 
-AeroStage is a native macOS companion app for the tiling window manager
-[AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of the macOS
-Stage Manager: every AeroSpace workspace appears as a "stage" with window thumbnails at the
-edge of the screen. It is driven primarily by keyboard through AeroSpace; the mouse works
-just as well.
+AeroStage is a native macOS companion app for the tiling window manager **AeroStage WM**, a
+thin fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace). It recreates the strip of
+the macOS Stage Manager: every workspace appears as a "stage" with window thumbnails at the
+edge of the screen. It is driven primarily by keyboard through the window manager; the mouse
+works just as well. The original AeroSpace still works, with fallbacks.
 
 ---
 
@@ -17,9 +18,10 @@ just as well.
   fork of AeroSpace (see 17); plain AeroSpace still works with fallbacks.
 - **Stay close to AeroSpace.** AeroSpace's default shortcuts and behavior are kept. If
   AeroStage is not running, AeroSpace keeps working normally.
-- **No polling of AeroSpace.** Updates come from the `aerospace subscribe` event stream. The
-  only periodic check is a local window-server query every 0.5 s for the visible
-  stage's windows (see 16), because AeroSpace reports no event for minimized windows.
+- **No polling of the window manager.** Updates come from the `subscribe` event stream. Local
+  periodic checks: the process list once a second (is the window manager running, see 24)
+  and, with the original AeroSpace only, a window-server query every 0.5 s for the visible
+  stage's windows (see 16).
 - **Open source** on GitHub under the MIT license, distributed through a Homebrew tap.
 
 ## 2. Terms
@@ -85,8 +87,9 @@ Side: left or right, **right by default**.
 | Click a thumbnail/icon | Focus exactly that window (`aerospace focus --window-id`) |
 | Drag a thumbnail onto another card | Move the window to that stage |
 | Drag a thumbnail onto the "+" area | New stage with that window |
-| Right-click a card | Close stage (all windows), switch to stage |
-| Right-click a thumbnail | Bring window to the current stage, close window |
+| Right-click a card | Switch to stage, Layout (side by side, accordion, reset), close stage (all windows) |
+| Right-click a thumbnail | Focus, move to the current or a new stage, Tiling/Floating (checkmark), close window |
+| Drag a real window by its title bar to the sidebar | Move it to the stage or a new stage (see 13) |
 
 The panel never takes keyboard focus (non-activating `NSPanel`) and is visible on all Spaces.
 
@@ -138,16 +141,24 @@ In fixed mode AeroStage writes the plain AeroSpace commands instead (`workspace 
 
 ### 3.7 Settings
 
-A settings window with four tabs, reachable via `aerostage settings` and the sidebar's
-context menu:
+A settings window with a sidebar (`NavigationSplitView`), reachable via the menu bar item,
+`aerostage settings` and the sidebar's context menu:
 
-- **General:** launch AeroStage at login (`SMAppService.mainApp`), start AeroSpace at login
-  (sets `start-at-login` in the AeroSpace config), mode (reserved/overlay, edge trigger,
-  delay), side and width, monitor priority list, numbering (dynamic/fixed)
-- **Appearance:** view, thumbnail refresh interval, Screen Recording status, icon size,
-  background color/opacity/blur, title color and size
-- **Keyboard:** preset (US / International / Custom), modifier for custom, detected layout
-- **AeroSpace:** managed config on/off, gaps, path to the CLI, status
+- **AeroStage**
+  - **General:** launch at login (`SMAppService.mainApp`), mode (reserved/overlay, edge
+    trigger, delay), side and width, monitor priority list, numbering (dynamic/fixed)
+  - **Appearance:** view, thumbnail refresh interval, Screen Recording status, icon size,
+    background color/opacity/blur, title color and size
+  - **Menu Bar:** show the item, show the stage number, hide AeroStage WM's own item
+- **AeroStage WM (AeroSpace)**, named "AeroSpace" with the original (then with a permanent
+  warning banner)
+  - **General:** start at login (`start-at-login`), status (window manager, connection,
+    window events, config file)
+  - **Keyboard:** preset (US / International / Custom), modifier, key positions
+  - **Layout, Behavior:** top-level keys of `~/.aerospace.toml` (see 21)
+  - **Gaps:** between windows and to the screen edge (managed section)
+  - **Advanced:** managed config on/off, automatic reload, path to the CLI
+- **Versions & Updates**, pinned to the bottom of the sidebar (see 22)
 
 Stored in `UserDefaults` (`io.github.tech-maou.AeroStage`).
 
@@ -176,9 +187,13 @@ aerostage CLI ─►│  CommandServer (Unix socket) ──► StageCommands    
 | `ThumbnailService` | Captures the sidebar's windows via ScreenCaptureKit, active stage first, then on an interval. Remembers the last visible position of every window for the layout view |
 | `MonitorResolver` | Picks the sidebar monitor from the priority list and maps it to the AeroSpace monitor |
 | `SidebarController` | Non-activating `NSPanel`, positioning, show/hide |
-| `ConfigManager` | Writes gaps and shortcuts into the marked sections of `~/.aerospace.toml`, then runs `aerospace reload-config` |
+| `ConfigManager` | Writes gaps and shortcuts into the marked sections of `~/.aerospace.toml` and single top-level keys, then runs `reload-config` |
+| `MenuBarController` | Menu bar item with the stage number; stages, settings, view, mode, quit, update and warning entries |
+| `WindowManagerWatch` | Notices when the window manager is not running, offers to start it (see 24) |
+| `UpdateChecker` / `UpdateInstaller` | Daily release check on GitHub, update through Homebrew (see 22) |
+| `AeroSpaceConflict` | Warns when the original AeroSpace runs next to AeroStage WM |
 | `CommandServer` / `StageCommands` | Unix domain socket; receives commands from the CLI and translates positions into workspace names |
-| `aerostage` (CLI) | Tiny binary for shortcuts: `focus N`, `move N`, `new`, `next`, `prev`, `toggle`, `settings`, `reload`, `status`, `quit`. Falls back to plain `aerospace` commands when the app is not running |
+| `aerostage` (CLI) | Tiny binary for shortcuts: `focus N`, `move N`, `new`, `next`, `prev`, `toggle`, `settings`, `update`, `reload`, `status`, `quit`. Falls back to plain window manager commands when the app is not running |
 
 ## 5. Project layout
 
@@ -199,9 +214,12 @@ AeroStage/
 │   ├── test.sh               # swift test, also without Xcode (Command Line Tools only)
 │   ├── bundle.sh             # builds build/AeroStage.app and signs it
 │   ├── install.sh            # bundle.sh + install to /Applications + restart
-│   └── release.sh            # (phase 4) zip + SHA256 for GitHub release / cask
+│   ├── release.sh            # zip + SHA256 for a GitHub release, updates the cask
+│   ├── publish.sh            # dev → main, tag, signed zip, GitHub release, cask
+│   └── make-icons.swift      # draws the icons of AeroStage and AeroStage WM
 ├── LICENSE                   # MIT
 ├── THIRD-PARTY-NOTICES.md
+├── CHANGELOG.md
 └── README.md
 ```
 
@@ -212,22 +230,24 @@ and the CLI at `Contents/Helpers/aerostage`.
 ## 6. Permissions & signing
 
 - **Screen Recording:** required for thumbnails. Without it the sidebar falls back to icons.
-- **Accessibility:** not required for AeroStage (only AeroSpace itself needs it).
-- **Signing:** no paid Apple developer account.
-  - Local builds are signed with a stable self-signed certificate so the Screen Recording
-    permission survives rebuilds.
-  - Releases are signed ad-hoc; users may have to grant the permission again after updates.
-- **Launch at login:** `SMAppService.mainApp` (phase 4).
+- **Accessibility:** not required for AeroStage (only the window manager needs it).
+- **Notifications:** optional, for "update available" and "window manager quit".
+- **Signing:** no paid Apple developer account, no notarization.
+  - Releases of both apps are signed with the self-signed certificate "AeroStage Release"
+    (valid until 2046), so macOS keeps the permissions across updates.
+  - Local builds use "AeroStage Release", else "AeroStage Dev", else ad-hoc.
+- **Launch at login:** `SMAppService.mainApp`.
 
 ## 7. Distribution
 
-- GitHub repo `Tech-Maou/AeroStage`, MIT license.
-- The README names AeroSpace as a requirement and links to it.
-- GitHub releases with a `.zip`.
-- Homebrew tap `Tech-Maou/homebrew-tap` with a cask:
-  - modeled after `nikitabobko/tap/aerospace`
-  - `depends_on cask: "nikitabobko/tap/aerospace"`
-  - removes the quarantine attribute
+- GitHub repos `Tech-Maou/AeroStage` and `Tech-Maou/AeroStage-WM`, MIT license. `main` is
+  the released state (mirrored to GitHub), `dev` is where changes are made.
+- GitHub releases with a signed `.zip`, notes from `CHANGELOG.md`, made by `publish.sh`.
+- Homebrew tap `Tech-Maou/homebrew-tap`:
+  - `aerostage` with `depends_on cask: "tech-maou/tap/aerostage-wm"`
+  - `aerostage-wm` with `conflicts_with cask: "nikitabobko/tap/aerospace"`
+  - both remove the quarantine attribute, link their CLI and quit the app before an upgrade
+    (`uninstall quit:`); Homebrew reopens it afterwards
 
 ## 8. Phases
 

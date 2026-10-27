@@ -169,7 +169,7 @@ struct SettingsView: View {
             } footer: {
                 Text(settings.displayMode == .overlay
                      ? "The sidebar floats above your windows and hides when the mouse leaves it. Windows get the full screen width. \(settings.modifier)-s shows it too."
-                     : "The sidebar is always visible and AeroSpace keeps its space free.")
+                     : "The sidebar is always visible and the window manager keeps its space free.")
                     .foregroundStyle(.secondary)
             }
 

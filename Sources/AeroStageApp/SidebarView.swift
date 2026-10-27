@@ -122,7 +122,7 @@ struct SidebarView: View {
                 NewStageZone(actions: actions)
             }
             if !store.isConnected {
-                Label("AeroSpace not reachable", systemImage: "exclamationmark.triangle")
+                Label("\(watch.name) not reachable", systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(Color(nsColor: settings.textColor).opacity(0.8))
                     .padding(.top, 8)
