@@ -215,6 +215,15 @@ import Testing
         #expect(windows.first?.monitorId == 1)
     }
 
+    @Test func decodesWindowLayout() throws {
+        let json = """
+        [{"app-name":"Mail","monitor-id":1,"window-id":1,"window-title":"","workspace":"1","window-layout":"floating"},
+         {"app-name":"Notes","monitor-id":1,"window-id":2,"window-title":"","workspace":"1","window-layout":"tiles"}]
+        """
+        let windows = try JSONDecoder().decode([AeroWindow].self, from: Data(json.utf8))
+        #expect(windows.map(\.isFloating) == [true, false])
+    }
+
     @Test func decodesMonitorList() throws {
         let json = #"[{"monitor-appkit-nsscreen-screens-id":1,"monitor-id":1,"monitor-name":"DELL U4025QW"}]"#
         let monitors = try JSONDecoder().decode([AeroMonitor].self, from: Data(json.utf8))

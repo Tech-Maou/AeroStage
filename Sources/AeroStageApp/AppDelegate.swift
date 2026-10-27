@@ -62,7 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updates.start()
 
         commands.toggleSidebar = { [unowned self] in sidebar.toggle() }
-        sidebar.onVisibilityChange = { [unowned self] _ in updateThumbnails() }
+        sidebar.onVisibilityChange = { [unowned self] shown in
+            updateThumbnails()
+            // The original AeroSpace does not report floating/tiling switches; catch up on reveal.
+            if shown, !AeroSpacePaths.reportsWindowChanges(store.client.executable) { store.scheduleRefresh() }
+        }
         sidebar.onMenuTrackingChange = { [unowned self] open in thumbnails.isPaused = open }
         commands.openSettings = { [unowned self] in settingsWindow.show() }
         commands.checkForUpdates = { [unowned self] in
@@ -139,8 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let name = commands.newStageName() else { return NSSound.beep() }
                 run { try await $0.moveWindow(id, to: name); try? await $0.tile(windowId: id) }
             },
-            toggleFloating: { [unowned self] id in
-                run { try await $0.toggleFloating(windowId: id) }
+            setFloating: { [unowned self] id, floating in
+                run { try await $0.setFloating(floating, windowId: id) }
             },
             newStage: { [unowned self] in
                 guard let name = commands.newStageName() else { return NSSound.beep() }

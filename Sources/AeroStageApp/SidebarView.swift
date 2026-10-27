@@ -10,7 +10,7 @@ struct SidebarActions {
     var moveWindow: (Int, String) -> Void
     var moveWindowToCurrentStage: (Int) -> Void
     var moveWindowToNewStage: (Int) -> Void
-    var toggleFloating: (Int) -> Void
+    var setFloating: (Int, Bool) -> Void
     var newStage: () -> Void
     var closeWindow: (Int) -> Void
     var closeStage: (String) -> Void
@@ -405,10 +405,16 @@ struct WindowThumbnail: View {
                             .shadow(color: .black.opacity(0.3), radius: 1.5)
                             .offset(x: -badgeSize / 7, y: badgeSize / 7)
                     }
+                    .overlay(alignment: .topLeading) {
+                        if window.isFloating { FloatingBadge(size: badgeSize * 0.5).padding(3) }
+                    }
             } else {
                 shape.fill(ink.opacity(0.1))
                     .overlay(Image(nsImage: icon).resizable().scaledToFit()
                         .frame(maxWidth: badgeSize * 1.4, maxHeight: badgeSize * 1.4).padding(4))
+                    .overlay(alignment: .topLeading) {
+                        if window.isFloating { FloatingBadge(size: badgeSize * 0.5).padding(3) }
+                    }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -426,7 +432,25 @@ struct WindowIcon: View {
             .resizable()
             .interpolation(.high)
             .frame(width: size, height: size)
+            .overlay(alignment: .topLeading) {
+                if window.isFloating { FloatingBadge(size: size * 0.38).offset(x: -size * 0.06, y: -size * 0.06) }
+            }
             .help(window.windowTitle.isEmpty ? window.appName : "\(window.appName) – \(window.windowTitle)")
+    }
+}
+
+/// Marks a floating window: two overlapping windows, white on a dark chip, so it reads on any
+/// thumbnail without drawing attention. Tiled windows (the default) have no mark.
+struct FloatingBadge: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "square.on.square")
+            .font(.system(size: size * 0.58, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(.black.opacity(0.5), in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+            .help("Floating")
     }
 }
 
@@ -511,7 +535,9 @@ extension View {
                 Button("Focus Window") { actions.focusWindow(window.windowId) }
                 Button("Move to Current Stage") { actions.moveWindowToCurrentStage(window.windowId) }
                 Button("Move to New Stage") { actions.moveWindowToNewStage(window.windowId) }
-                Button("Toggle Floating / Tiling") { actions.toggleFloating(window.windowId) }
+                // Checkmarks show the current state; choosing the other one switches.
+                Toggle("Tiling", isOn: Binding(get: { !window.isFloating }, set: { if $0 { actions.setFloating(window.windowId, false) } }))
+                Toggle("Floating", isOn: Binding(get: { window.isFloating }, set: { if $0 { actions.setFloating(window.windowId, true) } }))
                 Divider()
                 Button("Close Window") { actions.closeWindow(window.windowId) }
             }

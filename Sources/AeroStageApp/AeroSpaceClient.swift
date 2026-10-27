@@ -79,9 +79,9 @@ struct AeroSpaceClient: Sendable {
         _ = try await run(["layout", "tiling", "--window-id", String(windowId)])
     }
 
-    /// Switches a window between floating and tiling.
-    func toggleFloating(windowId: Int) async throws {
-        _ = try await run(["layout", "floating", "tiling", "--window-id", String(windowId)])
+    /// Makes a window float or puts it back into the tiling tree.
+    func setFloating(_ floating: Bool, windowId: Int) async throws {
+        _ = try await run(["layout", floating ? "floating" : "tiling", "--window-id", String(windowId)])
     }
 
     /// Arranges a whole workspace: `tiles` (side by side) or `accordion`.

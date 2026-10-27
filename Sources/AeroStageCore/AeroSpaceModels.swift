@@ -8,16 +8,21 @@ public struct AeroWindow: Codable, Hashable, Sendable, Identifiable {
     public let windowTitle: String
     public let workspace: String
     public let monitorId: Int
+    /// Layout of the window's parent container: "floating", "tiles", "accordion" (AeroSpace 0.20+).
+    public let windowLayout: String?
 
     public var id: Int { windowId }
+    public var isFloating: Bool { windowLayout == "floating" }
 
-    public init(windowId: Int, appName: String, appBundleId: String?, windowTitle: String, workspace: String, monitorId: Int) {
+    public init(windowId: Int, appName: String, appBundleId: String?, windowTitle: String, workspace: String, monitorId: Int,
+                windowLayout: String? = nil) {
         self.windowId = windowId
         self.appName = appName
         self.appBundleId = appBundleId
         self.windowTitle = windowTitle
         self.workspace = workspace
         self.monitorId = monitorId
+        self.windowLayout = windowLayout
     }
 
     enum CodingKeys: String, CodingKey {
@@ -27,10 +32,11 @@ public struct AeroWindow: Codable, Hashable, Sendable, Identifiable {
         case windowTitle = "window-title"
         case workspace
         case monitorId = "monitor-id"
+        case windowLayout = "window-layout"
     }
 
     /// Format string matching the CodingKeys.
-    public static let listFormat = "%{window-id} %{app-name} %{app-bundle-id} %{window-title} %{workspace} %{monitor-id}"
+    public static let listFormat = "%{window-id} %{app-name} %{app-bundle-id} %{window-title} %{workspace} %{monitor-id} %{window-layout}"
 }
 
 /// A monitor from `aerospace list-monitors --json --format …`.

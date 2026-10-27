@@ -494,7 +494,19 @@ Each phase starts with a short alignment.
   window show `brew uninstall --cask aerospace` with a copy button; "Update Now" installs the
   other updates only.
 
-## 23. Open
+## 23. 1.3.1: floating state
+
+- `list-windows` also reads `%{window-layout}`; `AeroWindow.isFloating` is true for "floating".
+- Window context menu: "Tiling" and "Floating" as checkmark items (`layout tiling|floating
+  --window-id`) instead of a toggle.
+- Floating windows get `FloatingBadge` (`square.on.square`, white on a 50 % black chip) at the
+  top left of the thumbnail or icon. No mark for tiled windows, no colors, no lock (it would
+  read as "locked to this stage").
+- AeroStage WM 0.21.3-stage.3 fires `workspace-windows-changed` also when the floating set of
+  a workspace changes. With the original AeroSpace, AeroStage refreshes when the sidebar
+  appears.
+
+## 24. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

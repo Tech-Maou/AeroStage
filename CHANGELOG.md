@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+- The window context menu shows the current state: **Tiling** and **Floating** with a checkmark
+  instead of "Toggle Floating / Tiling".
+- Floating windows carry a small neutral mark (two overlapping windows) in the top left corner
+  of their thumbnail or icon; tiled windows, the default, have none.
+- With AeroStage WM 0.21.3-stage.3 the state updates right away, also after a keyboard
+  shortcut. With the original AeroSpace it updates when
+  the sidebar appears.
+
 ## 1.3.0
 
 - Update check: once a day AeroStage asks GitHub for new releases of AeroStage and
