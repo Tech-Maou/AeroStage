@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // A sidebar without a Dock icon must not be quit by macOS under memory pressure.
+        ProcessInfo.processInfo.disableAutomaticTermination("AeroStage shows the sidebar")
+        ProcessInfo.processInfo.disableSuddenTermination()
         settings.seedMonitorPriorityIfNeeded()
         let client = makeClient()
         store = StateStore(client: client, settings: settings)
