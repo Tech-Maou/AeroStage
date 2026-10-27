@@ -9,8 +9,7 @@
   Homebrew and opens them again. Without Homebrew it opens the release page.
 - Settings → **Versions & Updates**, pinned to the bottom of the sidebar: installed versions
   of AeroStage and AeroStage WM, **Update to Version x.y.z** per app, automatic check on/off,
-  check now.
-  The menu has **Check for Updates …**, the CLI `aerostage update`.
+  check now. On the command line: `aerostage update`.
 - The Homebrew casks quit the apps before upgrading and reopen them afterwards, also when
   updating in the terminal.
 

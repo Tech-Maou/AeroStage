@@ -509,28 +509,23 @@ struct SettingsView: View {
 
     // MARK: Versions & Updates
 
-    /// Sidebar entry at the very bottom; drawn like a selected list row when active.
+    /// Sidebar entry at the very bottom. A second list with the same selection, so the row is
+    /// highlighted exactly like the ones above.
     private var versionsRow: some View {
-        let selected = navigation.section == .versions
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             Divider()
-            Button { navigation.section = .versions } label: {
+            List(selection: $navigation.section) {
                 HStack {
                     Label(SettingsSection.versions.title, systemImage: SettingsSection.versions.symbol)
                     Spacer()
                     if !updates.updates.isEmpty {
-                        Circle().fill(selected ? Color.white : Color.accentColor).frame(width: 7, height: 7)
+                        Circle().fill(.tint).frame(width: 7, height: 7)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .background(selected ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-                .contentShape(Rectangle())
+                .tag(SettingsSection.versions)
             }
-            .buttonStyle(.plain)
-            .padding(10)
+            .scrollDisabled(true)
+            .frame(height: 44)
         }
     }
 

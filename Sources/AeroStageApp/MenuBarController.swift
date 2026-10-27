@@ -89,10 +89,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem("AeroStage Settings …") { [weak self] in self?.openSettings(.stageGeneral) }
         menu.addItem("\(windowManagerName) Settings …") { [weak self] in self?.openSettings(.wmGeneral) }
-        menu.addItem("Check for Updates …") { [weak self] in
-            guard let updates = self?.updates else { return }
-            Task { await updates.check(userInitiated: true) }
-        }
 
         let view = NSMenu()
         for style in CardStyle.allCases {

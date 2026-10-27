@@ -466,11 +466,12 @@ Each phase starts with a short alignment.
   order, so `0.21.3-stage.10` > `0.21.3-stage.2`). AeroStage WM is skipped when it is not
   installed (original AeroSpace).
 - Found updates: one notification per new version, a dot in the menu bar glyph, "Update
-  Available …" at the top of the menu, status in Settings → Versions & Updates. "Check for
-  Updates …" in the menu, "Check Now" in the settings and `aerostage update` always show the
-  update window, also when everything is up to date.
+  Available …" at the top of the menu, status in Settings → Versions & Updates. No manual
+  check in the menu (the automatic one is enough); `aerostage update` shows the update window,
+  also when everything is up to date.
 - Settings → Versions & Updates: a section outside both groups, pinned below the sidebar
-  list (`safeAreaInset`). Installed versions of both apps; per outdated app "Update to
+  list (`safeAreaInset`, a second `List` bound to the same selection so it is highlighted
+  like the rows above). Installed versions of both apps; per outdated app "Update to
   Version x.y.z" (Homebrew) or "Download Version x.y.z" (release page). "Check Now" there
   only refreshes the status, it opens no window.
 - Update window: release notes per app, **Update Now** when every outdated app has a folder
