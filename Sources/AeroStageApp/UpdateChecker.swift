@@ -138,21 +138,36 @@ enum UpdateInstaller {
         ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"].first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    /// True if `component` was installed with its cask; otherwise the release page is offered.
-    static func isInstalledWithHomebrew(_ component: UpdateComponent) -> Bool {
+    /// True if the cask has a folder in Homebrew's Caskroom.
+    static func isCaskInstalled(_ token: String) -> Bool {
         guard let brew else { return false }
         let prefix = URL(fileURLWithPath: brew).deletingLastPathComponent().deletingLastPathComponent()
-        return FileManager.default.fileExists(atPath: prefix.appendingPathComponent("Caskroom/\(component.caskToken)").path)
+        return FileManager.default.fileExists(atPath: prefix.appendingPathComponent("Caskroom/\(token)").path)
     }
 
-    static func canInstall(_ updates: [UpdateChecker.Update]) -> Bool {
-        !updates.isEmpty && updates.allSatisfy { isInstalledWithHomebrew($0.component) }
+    /// True if `component` was installed with its cask; otherwise the release page is offered.
+    static func isInstalledWithHomebrew(_ component: UpdateComponent) -> Bool {
+        isCaskInstalled(component.caskToken)
+    }
+
+    /// The AeroStage WM cask conflicts with AeroSpace's: Homebrew refuses the upgrade while
+    /// AeroSpace is installed with Homebrew.
+    @MainActor
+    static func isBlocked(_ update: UpdateChecker.Update) -> Bool {
+        update.component == .windowManager && AeroSpaceConflict.isInstalledWithHomebrew
+    }
+
+    /// The updates "Update Now" installs: those installed with Homebrew and not blocked.
+    @MainActor
+    static func installable(_ updates: [UpdateChecker.Update]) -> [UpdateChecker.Update] {
+        updates.filter { isInstalledWithHomebrew($0.component) && !isBlocked($0) }
     }
 
     /// `quitWindowManager` returns all windows to the screen and quits AeroStage WM, then calls back.
     @MainActor
     static func install(_ updates: [UpdateChecker.Update], quitWindowManager: (@escaping @MainActor () -> Void) -> Void) {
-        guard let brew, canInstall(updates) else { return }
+        let updates = installable(updates)
+        guard let brew, !updates.isEmpty else { return }
         let updatesWindowManager = updates.contains { $0.component == .windowManager }
         let reopenWindowManager = !NSRunningApplication.runningApplications(withBundleIdentifier: UpdateComponent.windowManager.bundleID).isEmpty
         let launch: @MainActor @Sendable () -> Void = {

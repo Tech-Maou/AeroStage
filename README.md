@@ -88,6 +88,22 @@ The cask installs AeroStage WM as a dependency. AeroStage is not notarized by Ap
 project does not use a paid Apple developer account, so the cask removes the quarantine
 attribute to let macOS launch the app.
 
+### Switching from AeroSpace
+
+AeroStage WM replaces AeroSpace; run only one of them. Both read `~/.aerospace.toml`, so your
+config carries over, and with `start-at-login = true` both would start at login.
+
+```bash
+brew uninstall --cask aerospace   # keeps ~/.aerospace.toml
+brew install --cask tech-maou/tap/aerostage
+```
+
+Homebrew refuses to install or upgrade AeroStage WM while the `aerospace` cask is installed.
+If AeroSpace was installed without Homebrew, move `AeroSpace.app` to the Trash. AeroStage warns
+when both run at the same time and offers to quit AeroSpace (its windows are returned to the
+screen first). **Settings → Versions & Updates** shows the AeroSpace version while it is
+installed.
+
 ### Updates
 
 Once a day AeroStage asks GitHub for new releases of AeroStage and AeroStage WM. When there is

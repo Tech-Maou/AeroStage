@@ -11,6 +11,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let store: StateStore
     private let settings: AppSettings
     private let updates: UpdateChecker
+    private let conflict: AeroSpaceConflict
     private var item: NSStatusItem?
     private var subscriptions: Set<AnyCancellable> = []
 
@@ -18,10 +19,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     var focusWorkspace: (String) -> Void = { _ in }
     var showUpdates: () -> Void = {}
 
-    init(store: StateStore, settings: AppSettings, updates: UpdateChecker) {
+    init(store: StateStore, settings: AppSettings, updates: UpdateChecker, conflict: AeroSpaceConflict) {
         self.store = store
         self.settings = settings
         self.updates = updates
+        self.conflict = conflict
         super.init()
         updates.$updates
             .sink { [weak self] _ in DispatchQueue.main.async { self?.update() } }
@@ -69,6 +71,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+
+        if conflict.bothRunning {
+            let item = menu.addItem("AeroSpace Is Running Too – Quit AeroSpace") { [weak self] in self?.conflict.quitAeroSpace() }
+            item.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+            menu.addItem(.separator())
+        }
 
         if !updates.updates.isEmpty {
             let names = updates.updates.map { "\($0.component.title) \($0.release.version)" }.joined(separator: ", ")

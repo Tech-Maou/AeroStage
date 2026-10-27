@@ -10,6 +10,10 @@
 - Settings → **Versions & Updates**, pinned to the bottom of the sidebar: installed versions
   of AeroStage and AeroStage WM, **Update to Version x.y.z** per app, automatic check on/off,
   check now. On the command line: `aerostage update`.
+- With the original AeroSpace still installed: a warning when both window managers run, with
+  **Quit AeroSpace** (windows return to the screen first); the AeroSpace version in Versions &
+  Updates; while its Homebrew cask is installed, the AeroStage WM update is disabled with the
+  command to uninstall it, as Homebrew would refuse it.
 - The Homebrew casks quit the apps before upgrading and reopen them afterwards, also when
   updating in the terminal.
 

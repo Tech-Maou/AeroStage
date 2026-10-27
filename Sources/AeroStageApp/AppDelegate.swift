@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController!
     private var menuBar: MenuBarController!
     private var updates: UpdateChecker!
+    private let conflict = AeroSpaceConflict()
     private var updateWindow: UpdateWindowController!
     private var subscriptions: Set<AnyCancellable> = []
 
@@ -41,9 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setUpWindowDragging(actions: actions)
         updates = UpdateChecker(settings: settings)
         settingsWindow = SettingsWindowController { [unowned self] navigation in
-            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, updates: updates, navigation: navigation)
+            SettingsView(settings: settings, store: store, config: config, thumbnails: thumbnails, loginItem: loginItem, updates: updates, conflict: conflict, navigation: navigation)
         }
-        menuBar = MenuBarController(store: store, settings: settings, updates: updates)
+        menuBar = MenuBarController(store: store, settings: settings, updates: updates, conflict: conflict)
         menuBar.openSettings = { [unowned self] in settingsWindow.show($0) }
         menuBar.focusWorkspace = { [unowned self] name in
             let client = store.client

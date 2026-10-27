@@ -8,7 +8,11 @@ struct UpdateView: View {
     var install: () -> Void
     var close: () -> Void
 
-    private var canInstall: Bool { UpdateInstaller.canInstall(checker.updates) }
+    private var installable: [UpdateChecker.Update] { UpdateInstaller.installable(checker.updates) }
+    private var isBlocked: Bool { checker.updates.contains(where: UpdateInstaller.isBlocked) }
+    private var downloads: [UpdateChecker.Update] {
+        checker.updates.filter { !UpdateInstaller.isInstalledWithHomebrew($0.component) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -49,9 +53,10 @@ struct UpdateView: View {
                 .frame(height: 260)
                 .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
 
-                Text(canInstall
+                if isBlocked { AeroSpaceCaskNote() }
+                Text(!installable.isEmpty
                      ? "AeroStage returns all windows to the screen, quits, updates with Homebrew and opens again. This takes about a minute."
-                     : "Not installed with Homebrew: download the new version from the release page.")
+                     : downloads.isEmpty ? "" : "Not installed with Homebrew: download the new version from the release page.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -63,11 +68,12 @@ struct UpdateView: View {
                     Button("OK", action: close).keyboardShortcut(.defaultAction)
                 } else {
                     Button("Later", action: close).keyboardShortcut(.cancelAction)
-                    if canInstall {
-                        Button("Update Now", action: install).keyboardShortcut(.defaultAction)
-                    } else {
+                    if !installable.isEmpty {
+                        Button(installable.count < checker.updates.count ? "Update \(installable.map(\.component.title).joined(separator: ", ")) Now" : "Update Now", action: install)
+                            .keyboardShortcut(.defaultAction)
+                    } else if !downloads.isEmpty {
                         Button("Open Release Page") {
-                            checker.updates.forEach { NSWorkspace.shared.open($0.release.htmlURL) }
+                            downloads.forEach { NSWorkspace.shared.open($0.release.htmlURL) }
                             close()
                         }
                         .keyboardShortcut(.defaultAction)
@@ -85,6 +91,31 @@ struct UpdateView: View {
         guard !text.isEmpty else { return AttributedString("No release notes.") }
         return (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(text)
+    }
+}
+
+/// Homebrew refuses to upgrade AeroStage WM while AeroSpace's cask is installed.
+struct AeroSpaceCaskNote: View {
+    private let command = "brew uninstall --cask aerospace"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("AeroSpace is installed with Homebrew and blocks updating AeroStage WM. Uninstall it first; ~/.aerospace.toml is kept.", systemImage: "exclamationmark.triangle.fill")
+                .symbolRenderingMode(.multicolor)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Text(command).font(.callout.monospaced()).textSelection(.enabled)
+                Button("Copy") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(command, forType: .string)
+                }
+                .controlSize(.small)
+            }
+        }
+        .font(.callout)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

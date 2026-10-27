@@ -484,6 +484,16 @@ Each phase starts with a short alignment.
 - Casks: `uninstall quit:` for both apps. On `brew upgrade` Homebrew quits the running app
   (AeroStage WM then returns its windows to the screen) and reopens it afterwards.
 
+- AeroSpace next to AeroStage WM (`AeroSpaceConflict`): both read `~/.aerospace.toml` and
+  register themselves as login items. While both run (`bobko.aerospace` and the fork), an
+  alert offers "Quit AeroSpace" (its own `aerospace enable off`, then terminate; the original
+  does not clean up on terminate), the menu starts with "AeroSpace Is Running Too – Quit
+  AeroSpace", and Versions & Updates shows the same. The AeroSpace version is listed while it
+  is installed. With the `aerospace` cask installed, Homebrew refuses to upgrade
+  `aerostage-wm` (`conflicts_with`), so that update is disabled and the settings and update
+  window show `brew uninstall --cask aerospace` with a copy button; "Update Now" installs the
+  other updates only.
+
 ## 23. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is

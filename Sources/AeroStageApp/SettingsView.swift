@@ -55,6 +55,7 @@ struct SettingsView: View {
     @ObservedObject var thumbnails: ThumbnailService
     @ObservedObject var loginItem: LoginItem
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var conflict: AeroSpaceConflict
     @ObservedObject var navigation: SettingsNavigation
 
     private var usesAeroStageWM: Bool { AeroSpacePaths.reportsWindowChanges(store.client.executable) }
@@ -531,9 +532,34 @@ struct SettingsView: View {
 
     private var versions: some View {
         Form {
-            Section("Installed") {
+            Section {
                 ForEach(UpdateComponent.allCases, id: \.self) { component in
                     versionRow(component)
+                }
+                if let version = AeroSpaceConflict.installedVersion {
+                    LabeledContent("AeroSpace (original)") {
+                        HStack {
+                            Text(version).foregroundStyle(.secondary).textSelection(.enabled)
+                            if conflict.bothRunning {
+                                Button("Quit AeroSpace") { conflict.quitAeroSpace() }
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Installed")
+            } footer: {
+                VStack(alignment: .leading, spacing: 8) {
+                    if conflict.bothRunning {
+                        Label("AeroSpace and AeroStage WM are both running and move the same windows. Quit AeroSpace.", systemImage: "exclamationmark.triangle.fill")
+                            .symbolRenderingMode(.multicolor)
+                    }
+                    if updates.updates.contains(where: UpdateInstaller.isBlocked) {
+                        AeroSpaceCaskNote()
+                    } else if AeroSpaceConflict.installedVersion != nil {
+                        Text("AeroStage WM replaces AeroSpace. Both read ~/.aerospace.toml and start at login, so uninstall AeroSpace once you have switched.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -563,11 +589,15 @@ struct SettingsView: View {
                 Text(UpdateChecker.installedVersion(of: component) ?? "Not installed")
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                if component == .windowManager, UpdateChecker.installedVersion(of: component) == nil {
+                    Link("Get AeroStage WM", destination: URL(string: "https://github.com/Tech-Maou/AeroStage-WM")!)
+                }
                 if let update = updates.updates.first(where: { $0.component == component }) {
                     let version = update.release.version.description
                     if UpdateInstaller.isInstalledWithHomebrew(component) {
                         Button("Update to Version \(version)") { updates.install([update]) }
                             .buttonStyle(.borderedProminent)
+                            .disabled(UpdateInstaller.isBlocked(update))
                     } else {
                         Button("Download Version \(version)") { NSWorkspace.shared.open(update.release.htmlURL) }
                     }
