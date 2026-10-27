@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+- Window manager settings without editing the config file:
+  - **Layout:** default layout and direction of new stages, accordion offset, normalization.
+  - **Behavior:** focus follows the mouse, move the mouse along when focusing another
+    monitor, show apps hidden with ⌘H again.
+  - **Keyboard:** key positions (QWERTY, Dvorak, Colemak).
+  - **Advanced:** reload the config automatically when the file is saved.
+- Each change is written as a single line of `~/.aerospace.toml` and reloaded right away;
+  everything else in the file stays as it is. App rules, custom modes and free shortcuts are
+  still edited in the file ("Open in Editor").
+
 ## 1.1.0
 
 - Menu bar item: a monochrome AeroStage icon with the number of the visible stage. Its menu

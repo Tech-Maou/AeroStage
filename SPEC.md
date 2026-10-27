@@ -446,7 +446,18 @@ Each phase starts with a short alignment.
 - Releases: 1.0.1 (fixes, current `dev`), 1.1.0 (this, branch `next`), 1.2.0 (window manager
   settings from the config: layout, behavior).
 
-## 21. Open
+## 21. 1.2: window manager settings
+
+- `ConfigManager.values` holds the raw values of the editable top-level keys
+  (`default-root-container-layout`, `default-root-container-orientation`, `accordion-padding`,
+  both normalization flags, `focus-follows-mouse.enabled`, `on-focused-monitor-changed`,
+  `automatically-unhide-macos-hidden-apps`, `key-mapping.preset`, `auto-reload-config`).
+- A change replaces only that line (`ManagedConfig.settingRaw`, keeps comments, ignores
+  keys inside tables), backs up the file once and runs `reload-config`. Keys missing from
+  the file disable their control instead of being added.
+- New sections: Layout and Behavior; Keyboard gains key positions, Advanced the auto reload.
+
+## 22. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

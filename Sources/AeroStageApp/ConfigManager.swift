@@ -5,6 +5,50 @@ import Foundation
 @MainActor
 final class ConfigManager: ObservableObject {
     @Published private(set) var status = "Not checked yet"
+    /// Raw values of the window manager settings AeroStage can edit, by key; missing keys are absent.
+    @Published private(set) var values: [String: String] = [:]
+
+    static let editableKeys = [
+        "default-root-container-layout", "default-root-container-orientation", "accordion-padding",
+        "enable-normalization-flatten-containers", "enable-normalization-opposite-orientation-for-nested-containers",
+        "focus-follows-mouse.enabled", "on-focused-monitor-changed", "automatically-unhide-macos-hidden-apps",
+        "key-mapping.preset", "auto-reload-config",
+    ]
+
+    func readValues() {
+        guard let text = try? String(contentsOf: configURL, encoding: .utf8) else { return values = [:] }
+        values = Self.editableKeys.reduce(into: [:]) { result, key in
+            result[key] = ManagedConfig.rawSetting(key, in: text)
+        }
+    }
+
+    /// Writes one top-level setting (raw TOML value) and reloads the window manager config.
+    func setValue(_ key: String, raw: String, client: AeroSpaceClient) async {
+        let url = configURL
+        guard let text = try? String(contentsOf: url, encoding: .utf8),
+              let updated = ManagedConfig.settingRaw(key, to: raw, in: text)
+        else {
+            status = "\(key) not found in \(url.path)"
+            return
+        }
+        do {
+            try backupOnce(url)
+            try updated.write(to: url, atomically: true, encoding: .utf8)
+            try? await client.reloadConfig()
+            status = "Updated \(key)"
+        } catch {
+            status = "Write failed: \(error.localizedDescription)"
+        }
+        readValues()
+    }
+
+    private func backupOnce(_ url: URL) throws {
+        let backup = url.appendingPathExtension("aerostage-backup")
+        if !FileManager.default.fileExists(atPath: backup.path) {
+            try FileManager.default.copyItem(at: url, to: backup)
+        }
+    }
+
     /// `start-at-login` in the AeroSpace config; `nil` if unknown or missing.
     @Published private(set) var aerospaceStartsAtLogin: Bool?
 

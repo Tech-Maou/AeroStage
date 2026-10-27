@@ -5,10 +5,10 @@ import SwiftUI
 /// Sections of the settings window, grouped by app.
 enum SettingsSection: String, CaseIterable, Hashable {
     case stageGeneral, stageAppearance, stageMenuBar
-    case wmGeneral, wmKeyboard, wmGaps, wmAdvanced
+    case wmGeneral, wmKeyboard, wmLayout, wmGaps, wmBehavior, wmAdvanced
 
     static let aeroStage: [SettingsSection] = [.stageGeneral, .stageAppearance, .stageMenuBar]
-    static let windowManager: [SettingsSection] = [.wmGeneral, .wmKeyboard, .wmGaps, .wmAdvanced]
+    static let windowManager: [SettingsSection] = [.wmGeneral, .wmKeyboard, .wmLayout, .wmGaps, .wmBehavior, .wmAdvanced]
 
     var title: String {
         switch self {
@@ -16,7 +16,9 @@ enum SettingsSection: String, CaseIterable, Hashable {
         case .stageAppearance: "Appearance"
         case .stageMenuBar: "Menu Bar"
         case .wmKeyboard: "Keyboard"
+        case .wmLayout: "Layout"
         case .wmGaps: "Gaps"
+        case .wmBehavior: "Behavior"
         case .wmAdvanced: "Advanced"
         }
     }
@@ -28,7 +30,9 @@ enum SettingsSection: String, CaseIterable, Hashable {
         case .stageMenuBar: "menubar.rectangle"
         case .wmGeneral: "macwindow.on.rectangle"
         case .wmKeyboard: "keyboard"
+        case .wmLayout: "rectangle.3.group"
         case .wmGaps: "rectangle.split.3x1"
+        case .wmBehavior: "cursorarrow.motionlines"
         case .wmAdvanced: "gearshape.2"
         }
     }
@@ -70,7 +74,9 @@ struct SettingsView: View {
             case .stageMenuBar: menuBar
             case .wmGeneral: windowManagerGeneral
             case .wmKeyboard: keyboard
+            case .wmLayout: layout
             case .wmGaps: gaps
+            case .wmBehavior: behavior
             case .wmAdvanced: advanced
             }
         }
@@ -78,7 +84,37 @@ struct SettingsView: View {
         .onAppear {
             loginItem.refresh()
             config.readAeroSpaceStartAtLogin()
+            config.readValues()
         }
+    }
+
+    // MARK: Window manager config values
+
+    private func configBool(_ key: String) -> Binding<Bool> {
+        Binding(
+            get: { config.values[key] == "true" },
+            set: { value in write(key, String(value)) })
+    }
+
+    private func configString(_ key: String, default fallback: String) -> Binding<String> {
+        Binding(
+            get: { config.values[key].flatMap { ManagedConfig.stringSetting(key, in: "\(key) = \($0)") } ?? fallback },
+            set: { value in write(key, "'\(value)'") })
+    }
+
+    private func configInt(_ key: String, default fallback: Int) -> Binding<Int> {
+        Binding(
+            get: { config.values[key].flatMap(Int.init) ?? fallback },
+            set: { value in write(key, String(value)) })
+    }
+
+    private func write(_ key: String, _ raw: String) {
+        let client = store.client
+        Task { await config.setValue(key, raw: raw, client: client) }
+    }
+
+    private func missing(_ keys: String...) -> Bool {
+        keys.contains { config.values[$0] == nil }
     }
 
     // MARK: General: mode, position, monitors, numbering
@@ -271,6 +307,12 @@ struct SettingsView: View {
                     Text("\(settings.modifier)-1 stage 1 · \(settings.modifier)-h focus left · \(settings.modifier)-shift-1 move window")
                         .foregroundStyle(.secondary)
                 }
+                Picker("Key positions", selection: configString("key-mapping.preset", default: "qwerty")) {
+                    Text("QWERTY (also QWERTZ, AZERTY)").tag("qwerty")
+                    Text("Dvorak").tag("dvorak")
+                    Text("Colemak").tag("colemak")
+                }
+                .disabled(missing("key-mapping.preset"))
             } footer: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Current keyboard layout: \(KeyboardLayout.currentName ?? "unknown"), suggested: \(KeyboardLayout.suggestedPreset == .us ? "US" : "International").")
@@ -344,6 +386,61 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
+    private var layout: some View {
+        Form {
+            Section {
+                Picker("New stages", selection: configString("default-root-container-layout", default: "tiles")) {
+                    Text("Side by side").tag("tiles")
+                    Text("Accordion").tag("accordion")
+                }
+                Picker("Direction", selection: configString("default-root-container-orientation", default: "auto")) {
+                    Text("Automatic (wide screens horizontal)").tag("auto")
+                    Text("Horizontal").tag("horizontal")
+                    Text("Vertical").tag("vertical")
+                }
+                Stepper("Accordion offset: \(configInt("accordion-padding", default: 30).wrappedValue) pt",
+                        value: configInt("accordion-padding", default: 30), in: 0...100, step: 5)
+            } header: {
+                Text("Default layout")
+            } footer: {
+                Text("Applies to stages created from now on; existing stages keep their layout (change it from a stage's context menu). When the window manager starts with more than three windows on a stage, it arranges them as an accordion regardless.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(missing("default-root-container-layout", "default-root-container-orientation", "accordion-padding"))
+
+            Section {
+                Toggle("Flatten nested containers", isOn: configBool("enable-normalization-flatten-containers"))
+                Toggle("Alternate direction of nested splits", isOn: configBool("enable-normalization-opposite-orientation-for-nested-containers"))
+            } header: {
+                Text("Normalization")
+            } footer: {
+                Text("Keeps the window tree tidy: containers with a single child are removed, and a split inside a split runs the other way. AeroSpace recommends leaving both on.")
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(missing("enable-normalization-flatten-containers", "enable-normalization-opposite-orientation-for-nested-containers"))
+        }
+        .formStyle(.grouped)
+    }
+
+    private var behavior: some View {
+        Form {
+            Section {
+                Toggle("Focus follows the mouse", isOn: configBool("focus-follows-mouse.enabled"))
+                    .disabled(missing("focus-follows-mouse.enabled"))
+                Toggle("Move the mouse along when focusing another monitor", isOn: Binding(
+                    get: { config.values["on-focused-monitor-changed"]?.contains("move-mouse") == true },
+                    set: { write("on-focused-monitor-changed", $0 ? "['move-mouse monitor-lazy-center']" : "[]") }))
+                    .disabled(missing("on-focused-monitor-changed"))
+                Toggle("Show apps hidden with ⌘H again automatically", isOn: configBool("automatically-unhide-macos-hidden-apps"))
+                    .disabled(missing("automatically-unhide-macos-hidden-apps"))
+            } footer: {
+                Text("Hiding apps with ⌘H doesn't fit tiling well; with the last option on, hidden apps come back right away.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
     private var gaps: some View {
         Form {
             Section {
@@ -367,6 +464,8 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("Config file") {
+                Toggle("Reload automatically when the file is saved", isOn: configBool("auto-reload-config"))
+                    .disabled(missing("auto-reload-config"))
                 LabeledContent("Status", value: config.status)
                 HStack {
                     Button("Open in Editor") { NSWorkspace.shared.open(config.configURL) }

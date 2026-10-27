@@ -58,7 +58,9 @@ the window manager, but clicking a stage or a window works just as well.
 - **Launch at login** for AeroStage and AeroSpace, switchable in the settings.
 - Menu bar icon with the number of the visible stage; its menu switches stages, opens the
   settings and quits AeroStage, AeroStage WM or both.
-- Settings with a sidebar, grouped by app: AeroStage and AeroStage WM (AeroSpace).
+- Settings with a sidebar, grouped by app: AeroStage and AeroStage WM (AeroSpace). The
+  window manager's common options (layout, behavior, key positions) are regular settings;
+  they are written into `~/.aerospace.toml` line by line.
 - No Dock icon, never steals keyboard focus.
 
 **Planned**
