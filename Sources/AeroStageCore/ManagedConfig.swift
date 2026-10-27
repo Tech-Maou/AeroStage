@@ -116,29 +116,66 @@ public enum ManagedConfig {
         return lines
     }
 
-    /// Value of a top-level boolean key such as `start-at-login`; `nil` if it is missing.
-    public static func boolSetting(_ key: String, in text: String) -> Bool? {
-        for line in text.components(separatedBy: "\n") {
-            let parts = line.split(separator: "#", maxSplits: 1)[...].first.map { $0.split(separator: "=", maxSplits: 1) } ?? []
-            guard parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces) == key else { continue }
-            switch parts[1].trimmingCharacters(in: .whitespaces) {
-            case "true": return true
-            case "false": return false
-            default: return nil
-            }
+    /// Lines before the first `[table]` header, i.e. the top-level keys.
+    private static func topLevelRange(_ lines: [String]) -> Range<Int> {
+        0..<(lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[") } ?? lines.count)
+    }
+
+    private static func key(of line: String) -> String? {
+        let parts = line.split(separator: "=", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+        let key = parts[0].trimmingCharacters(in: .whitespaces)
+        return key.hasPrefix("#") ? nil : key
+    }
+
+    /// Raw TOML value of a top-level key without a trailing comment, e.g. `30`, `'tiles'`, `[]`.
+    public static func rawSetting(_ key: String, in text: String) -> String? {
+        let lines = text.components(separatedBy: "\n")
+        for line in lines[topLevelRange(lines)] where self.key(of: line) == key {
+            let value = line.split(separator: "=", maxSplits: 1)[1]
+            // Values used here never contain "#", so everything after it is a comment.
+            return value.split(separator: "#", maxSplits: 1).first.map { $0.trimmingCharacters(in: .whitespaces) }
         }
         return nil
     }
 
+    /// Replaces the raw value of a top-level key, keeping a trailing comment. `nil` if the key is missing.
+    public static func settingRaw(_ key: String, to raw: String, in text: String) -> String? {
+        var lines = text.components(separatedBy: "\n")
+        guard let index = lines[topLevelRange(lines)].firstIndex(where: { self.key(of: $0) == key }) else { return nil }
+        let comment = lines[index].range(of: " #").map { String(lines[index][$0.lowerBound...]) } ?? ""
+        lines[index] = "\(key) = \(raw)\(comment)"
+        return lines.joined(separator: "\n")
+    }
+
+    /// Value of a top-level boolean key such as `start-at-login`; `nil` if it is missing.
+    public static func boolSetting(_ key: String, in text: String) -> Bool? {
+        switch rawSetting(key, in: text) {
+        case "true": true
+        case "false": false
+        default: nil
+        }
+    }
+
     /// Sets a top-level boolean key, keeping any comment on the line. `nil` if the key is missing.
     public static func settingBool(_ key: String, to value: Bool, in text: String) -> String? {
-        var lines = text.components(separatedBy: "\n")
-        guard let index = lines.firstIndex(where: {
-            $0.split(separator: "=", maxSplits: 1).first?.trimmingCharacters(in: .whitespaces) == key
-        }) else { return nil }
-        let comment = lines[index].range(of: "#").map { " " + lines[index][$0.lowerBound...] } ?? ""
-        lines[index] = "\(key) = \(value)\(comment)"
-        return lines.joined(separator: "\n")
+        settingRaw(key, to: String(value), in: text)
+    }
+
+    /// Value of a top-level string key such as `default-root-container-layout = 'tiles'`.
+    public static func stringSetting(_ key: String, in text: String) -> String? {
+        guard let raw = rawSetting(key, in: text), raw.count >= 2,
+              let quote = raw.first, quote == "'" || quote == "\"", raw.last == quote
+        else { return nil }
+        return String(raw.dropFirst().dropLast())
+    }
+
+    public static func settingString(_ key: String, to value: String, in text: String) -> String? {
+        settingRaw(key, to: "'\(value)'", in: text)
+    }
+
+    public static func intSetting(_ key: String, in text: String) -> Int? {
+        rawSetting(key, in: text).flatMap(Int.init)
     }
 
     /// AeroSpace monitor patterns are regular expressions; `'` is not allowed in a TOML literal key.

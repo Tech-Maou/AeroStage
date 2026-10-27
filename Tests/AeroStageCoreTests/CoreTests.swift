@@ -104,6 +104,20 @@ import Testing
         #expect(ManagedConfig.boolSetting("start-at-login", in: DefaultConfig.template) == false)
     }
 
+    @Test func readsAndWritesScalarSettings() throws {
+        let text = "accordion-padding = 30\ndefault-root-container-layout = 'tiles' # layout\nfocus-follows-mouse.enabled = false\n[mode.main.binding]\n    accordion-padding = 99"
+        #expect(ManagedConfig.intSetting("accordion-padding", in: text) == 30)
+        #expect(ManagedConfig.stringSetting("default-root-container-layout", in: text) == "tiles")
+        #expect(ManagedConfig.boolSetting("focus-follows-mouse.enabled", in: text) == false)
+        let updated = try #require(ManagedConfig.settingString("default-root-container-layout", to: "accordion", in: text))
+        #expect(updated.contains("default-root-container-layout = 'accordion' # layout"))
+        // Keys inside tables are not top-level settings.
+        let padded = try #require(ManagedConfig.settingRaw("accordion-padding", to: "12", in: text))
+        #expect(padded.hasPrefix("accordion-padding = 12\n"))
+        #expect(padded.contains("    accordion-padding = 99"))
+        #expect(ManagedConfig.rawSetting("on-mode-changed", in: text) == nil)
+    }
+
     @Test func templateHasAllBlocks() {
         #expect(ManagedConfig.replacingBlock("gaps", in: DefaultConfig.template, with: []) != nil)
         #expect(ManagedConfig.replacingBlock("stages", in: DefaultConfig.template, with: []) != nil)
