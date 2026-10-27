@@ -8,7 +8,7 @@ public struct AeroWindow: Codable, Hashable, Sendable, Identifiable {
     public let windowTitle: String
     public let workspace: String
     public let monitorId: Int
-    /// Layout of the window's parent container: "floating", "tiles", "accordion" (AeroSpace 0.20+).
+    /// Layout of the window's parent container: "floating", "h_tiles", "v_accordion", … (AeroSpace 0.20+).
     public let windowLayout: String?
 
     public var id: Int { windowId }
