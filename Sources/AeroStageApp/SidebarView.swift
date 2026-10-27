@@ -14,6 +14,8 @@ struct SidebarActions {
     var newStage: () -> Void
     var closeWindow: (Int) -> Void
     var closeStage: (String) -> Void
+    var setStageLayout: (String, String) -> Void
+    var resetStageLayout: (String) -> Void
     var canAddStage: () -> Bool
     var openSettings: () -> Void
     var hideSidebar: () -> Void
@@ -179,6 +181,13 @@ struct StageCard: View {
         } isTargeted: { dropTargeted = $0 }
         .contextMenu {
             Button("Switch to Stage") { actions.focusWorkspace(stage.workspace) }
+            Menu("Layout") {
+                Button("Side by Side") { actions.setStageLayout(stage.workspace, "tiles") }
+                Button("Accordion") { actions.setStageLayout(stage.workspace, "accordion") }
+                Divider()
+                Button("Reset Layout") { actions.resetStageLayout(stage.workspace) }
+            }
+            .disabled(stage.windows.isEmpty)
             Divider()
             Button(stage.windows.count == 1 ? "Close Stage (1 Window)" : "Close Stage (\(stage.windows.count) Windows)") {
                 actions.closeStage(stage.workspace)

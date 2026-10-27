@@ -42,7 +42,8 @@ the window manager, but clicking a stage or a window works just as well.
 - **Drag real windows:** grab a window by its title bar and drag it to the screen edge. The
   sidebar slides out, and dropping the window on a card or on **New Stage** moves it there.
 - **Context menus:** right-click a window to focus it, move it to the current or a new stage,
-  toggle floating/tiling, or close it; right-click a card to switch to or close the whole stage.
+  toggle floating/tiling, or close it; right-click a card to switch to it, change its layout
+  (side by side, accordion, reset) or close the whole stage.
 - **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
   the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
 - When the last window of the visible stage is closed, minimized or moved away, AeroStage

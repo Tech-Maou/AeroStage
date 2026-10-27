@@ -5,6 +5,11 @@
 - The sidebar moves to the right position right away when monitors change, and after
   unlocking or waking the Mac; before, it could keep the previous monitor's position after
   docking until the next stage switch.
+- Stage context menu: **Layout** → Side by Side, Accordion, Reset Layout. Useful after the
+  window manager starts with more than three windows on one stage, which AeroSpace arranges
+  as an accordion.
+- Builds are signed with the long-lived "AeroStage Release" certificate, so macOS keeps the
+  Screen Recording permission across updates (one more approval when updating from 1.0.0).
 
 ## 1.0.0
 

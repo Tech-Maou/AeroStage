@@ -84,6 +84,17 @@ struct AeroSpaceClient: Sendable {
         _ = try await run(["layout", "floating", "tiling", "--window-id", String(windowId)])
     }
 
+    /// Arranges a whole workspace: `tiles` (side by side) or `accordion`.
+    func setLayout(_ layout: String, workspace: String) async throws {
+        _ = try await run(["layout", "--workspace", workspace, "--root", layout])
+    }
+
+    /// Undoes nested splits and arranges all windows of the workspace side by side again.
+    func resetLayout(workspace: String) async throws {
+        _ = try await run(["flatten-workspace-tree", "--workspace", workspace])
+        try await setLayout("tiles", workspace: workspace)
+    }
+
     func close(windowId: Int) async throws {
         _ = try await run(["close", "--window-id", String(windowId)])
     }

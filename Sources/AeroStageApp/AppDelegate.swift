@@ -127,6 +127,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     for id in ids { try? await client.close(windowId: id) }
                 }
             },
+            setStageLayout: { [unowned self] workspace, layout in
+                run { try await $0.setLayout(layout, workspace: workspace) }
+            },
+            resetStageLayout: { [unowned self] workspace in
+                run { try await $0.resetLayout(workspace: workspace) }
+            },
             canAddStage: { [unowned self] in commands.newStageName() != nil },
             openSettings: { [unowned self] in settingsWindow.show() },
             hideSidebar: { [unowned self] in settings.sidebarVisible = false },
