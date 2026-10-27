@@ -16,7 +16,8 @@
 
 - Menu bar item: a monochrome AeroStage icon with the number of the visible stage. Its menu
   lists the stages, opens the settings of AeroStage and of the window manager, switches view
-  and mode, and quits AeroStage, AeroStage WM or both. With AeroStage WM, its own menu bar
+  and mode, and quits AeroStage, AeroStage WM or both. Quitting AeroStage WM first returns all windows to the
+  screen (`enable off`), so none stay parked in the screen corner. With AeroStage WM, its own menu bar
   item (which shows the internal workspace name) is hidden.
 - Settings window with a sidebar: **AeroStage** (General, Appearance, Menu Bar) and
   **AeroStage WM (AeroSpace)** (General, Keyboard, Gaps, Advanced). With the original

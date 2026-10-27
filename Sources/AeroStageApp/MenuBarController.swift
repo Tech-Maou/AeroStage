@@ -91,16 +91,31 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem("Quit AeroStage") { NSApp.terminate(nil) }
         if windowManagerName == "AeroStage WM" {
-            menu.addItem("Quit AeroStage WM") { Self.quitWindowManager() }
-            menu.addItem("Quit Both") {
-                Self.quitWindowManager()
-                NSApp.terminate(nil)
+            menu.addItem("Quit AeroStage WM") { [weak self] in self?.quitWindowManager() }
+            menu.addItem("Quit Both") { [weak self] in
+                self?.quitWindowManager { NSApp.terminate(nil) }
             }
         }
     }
 
-    static func quitWindowManager() {
-        NSRunningApplication.runningApplications(withBundleIdentifier: windowManagerBundleID).forEach { $0.terminate() }
+    /// Quits AeroStage WM without leaving windows behind. Windows of hidden stages are parked in a
+    /// screen corner, and a plain `terminate()` skips the cleanup that brings them back. `enable off`
+    /// first returns every window to the screen; then the window manager is terminated.
+    func quitWindowManager(then completion: @escaping @MainActor () -> Void = {}) {
+        let cli = store.client.executable
+        Task.detached {
+            let disable = Process()
+            disable.executableURL = URL(fileURLWithPath: cli)
+            disable.arguments = ["enable", "off"]
+            try? disable.run()
+            disable.waitUntilExit()
+            try? await Task.sleep(for: .milliseconds(500))
+            await MainActor.run {
+                NSRunningApplication.runningApplications(withBundleIdentifier: Self.windowManagerBundleID)
+                    .forEach { $0.terminate() }
+                completion()
+            }
+        }
     }
 
     /// The sidebar as an outline: a window on the left, three stage cards on the right.
