@@ -23,6 +23,8 @@ final class UpdateChecker: ObservableObject {
 
     /// Opens the update window; set by the app delegate.
     var showUpdates: () -> Void = {}
+    /// Installs the given updates with Homebrew; set by the app delegate.
+    var install: ([Update]) -> Void = { _ in }
 
     private let settings: AppSettings
     private let defaults = UserDefaults.standard
@@ -51,8 +53,9 @@ final class UpdateChecker: ObservableObject {
         Task { await check() }
     }
 
-    /// `userInitiated`: from "Check Now" or the menu; shows the update window even without updates.
-    func check(userInitiated: Bool = false) async {
+    /// `userInitiated`: from "Check Now", the menu or the CLI; no notification, and with
+    /// `showWindow` the update window opens even without updates.
+    func check(userInitiated: Bool = false, showWindow: Bool = true) async {
         guard !isChecking else { return }
         isChecking = true
         defer { isChecking = false }
@@ -70,14 +73,14 @@ final class UpdateChecker: ObservableObject {
         } catch {
             lastError = "Could not check for updates: \(error.localizedDescription)"
             NSLog("AeroStage: \(lastError!)")
-            if userInitiated { showUpdates() }
+            if userInitiated && showWindow { showUpdates() }
             return
         }
         updates = found
         lastCheck = Date()
         NSLog("AeroStage: update check: \(found.isEmpty ? "up to date" : found.map { "\($0.component.title) \($0.installed) → \($0.release.version)" }.joined(separator: ", "))")
         if userInitiated {
-            showUpdates()
+            if showWindow { showUpdates() }
         } else {
             notifyOnce(about: found)
         }

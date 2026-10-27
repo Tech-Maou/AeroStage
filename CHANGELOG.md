@@ -7,7 +7,9 @@
   **Update Available** at the top of its menu.
 - **Update Now** returns all windows to the screen, quits both apps, updates them with
   Homebrew and opens them again. Without Homebrew it opens the release page.
-- Settings → General → Updates: turn the automatic check off, check now, see the status.
+- Settings → **Versions & Updates**, pinned to the bottom of the sidebar: installed versions
+  of AeroStage and AeroStage WM, **Update to Version x.y.z** per app, automatic check on/off,
+  check now.
   The menu has **Check for Updates …**, the CLI `aerostage update`.
 - The Homebrew casks quit the apps before upgrading and reopen them afterwards, also when
   updating in the terminal.

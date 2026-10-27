@@ -6,6 +6,8 @@ import SwiftUI
 enum SettingsSection: String, CaseIterable, Hashable {
     case stageGeneral, stageAppearance, stageMenuBar
     case wmGeneral, wmKeyboard, wmLayout, wmGaps, wmBehavior, wmAdvanced
+    /// Pinned to the bottom of the sidebar, outside both groups.
+    case versions
 
     static let aeroStage: [SettingsSection] = [.stageGeneral, .stageAppearance, .stageMenuBar]
     static let windowManager: [SettingsSection] = [.wmGeneral, .wmKeyboard, .wmLayout, .wmGaps, .wmBehavior, .wmAdvanced]
@@ -20,6 +22,7 @@ enum SettingsSection: String, CaseIterable, Hashable {
         case .wmGaps: "Gaps"
         case .wmBehavior: "Behavior"
         case .wmAdvanced: "Advanced"
+        case .versions: "Versions & Updates"
         }
     }
 
@@ -34,6 +37,7 @@ enum SettingsSection: String, CaseIterable, Hashable {
         case .wmGaps: "rectangle.split.3x1"
         case .wmBehavior: "cursorarrow.motionlines"
         case .wmAdvanced: "gearshape.2"
+        case .versions: "arrow.triangle.2.circlepath"
         }
     }
 }
@@ -67,6 +71,7 @@ struct SettingsView: View {
                     ForEach(SettingsSection.windowManager, id: \.self) { Label($0.title, systemImage: $0.symbol) }
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { versionsRow }
             .navigationSplitViewColumnWidth(min: 190, ideal: 210)
         } detail: {
             let section = navigation.section ?? .stageGeneral
@@ -85,6 +90,7 @@ struct SettingsView: View {
                 case .wmGaps: gaps
                 case .wmBehavior: behavior
                 case .wmAdvanced: advanced
+                case .versions: versions
                 }
             }
         }
@@ -142,26 +148,6 @@ struct SettingsView: View {
                 Text("Startup")
             } footer: {
                 if let error = loginItem.lastError { Text(error).foregroundStyle(.secondary) }
-            }
-
-            Section {
-                Toggle("Check for updates automatically", isOn: $settings.checkForUpdates)
-                LabeledContent("Status") {
-                    HStack {
-                        Text(updateStatus).foregroundStyle(.secondary)
-                        if updates.isChecking { ProgressView().controlSize(.small) }
-                        if !updates.updates.isEmpty {
-                            Button("Show Update …") { updates.showUpdates() }
-                        }
-                        Button("Check Now") { Task { await updates.check(userInitiated: true) } }
-                            .disabled(updates.isChecking)
-                    }
-                }
-            } header: {
-                Text("Updates")
-            } footer: {
-                Text("Once a day, AeroStage asks GitHub for new releases of AeroStage and AeroStage WM. Updates are installed with Homebrew.")
-                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -518,6 +504,81 @@ struct SettingsView: View {
         let candidates = NSScreen.screens.map { MonitorResolver.isBuiltin($0) ? MonitorResolver.builtinToken : $0.localizedName }
         return (candidates + [MonitorResolver.builtinToken]).reduce(into: []) { result, entry in
             if !result.contains(entry), !settings.monitorPriority.contains(entry) { result.append(entry) }
+        }
+    }
+
+    // MARK: Versions & Updates
+
+    /// Sidebar entry at the very bottom; drawn like a selected list row when active.
+    private var versionsRow: some View {
+        let selected = navigation.section == .versions
+        return VStack(spacing: 0) {
+            Divider()
+            Button { navigation.section = .versions } label: {
+                HStack {
+                    Label(SettingsSection.versions.title, systemImage: SettingsSection.versions.symbol)
+                    Spacer()
+                    if !updates.updates.isEmpty {
+                        Circle().fill(selected ? Color.white : Color.accentColor).frame(width: 7, height: 7)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(selected ? Color.white : Color.primary)
+                .background(selected ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(10)
+        }
+    }
+
+    private var versions: some View {
+        Form {
+            Section("Installed") {
+                ForEach(UpdateComponent.allCases, id: \.self) { component in
+                    versionRow(component)
+                }
+            }
+
+            Section {
+                Toggle("Check for updates automatically", isOn: $settings.checkForUpdates)
+                LabeledContent("Status") {
+                    HStack {
+                        if updates.isChecking { ProgressView().controlSize(.small) }
+                        Text(updateStatus).foregroundStyle(.secondary)
+                        Button("Check Now") { Task { await updates.check(userInitiated: true, showWindow: false) } }
+                            .disabled(updates.isChecking)
+                    }
+                }
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Once a day, AeroStage asks GitHub for new releases of AeroStage and AeroStage WM. Updates are installed with Homebrew: both apps quit, update and open again.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func versionRow(_ component: UpdateComponent) -> some View {
+        LabeledContent(component.title) {
+            HStack {
+                Text(UpdateChecker.installedVersion(of: component) ?? "Not installed")
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                if let update = updates.updates.first(where: { $0.component == component }) {
+                    let version = update.release.version.description
+                    if UpdateInstaller.isInstalledWithHomebrew(component) {
+                        Button("Update to Version \(version)") { updates.install([update]) }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Download Version \(version)") { NSWorkspace.shared.open(update.release.htmlURL) }
+                    }
+                    Link("Release Notes", destination: update.release.htmlURL)
+                }
+            }
         }
     }
 

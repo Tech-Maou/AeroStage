@@ -94,7 +94,7 @@ Once a day AeroStage asks GitHub for new releases of AeroStage and AeroStage WM.
 one, you get a notification, the menu bar icon shows a dot and its menu starts with
 **Update Available**. **Update Now** returns all windows to the screen, quits both apps,
 runs `brew upgrade` and opens them again; the log is in `~/Library/Logs/AeroStage/update.log`.
-Turn the check off or run it by hand under **Settings → General → Updates** (or
+Turn the check off or run it by hand under **Settings → Versions & Updates** (or
 `aerostage update`). Only the two public release URLs on `api.github.com` are requested.
 
 Updating in the terminal works as well; the casks quit the apps first and reopen them:

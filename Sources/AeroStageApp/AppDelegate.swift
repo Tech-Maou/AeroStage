@@ -50,8 +50,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { try? await client.workspace(name) }
         }
         syncWindowManagerMenuBarItem()
+        updates.install = { [unowned self] list in
+            UpdateInstaller.install(list) { menuBar.quitWindowManager(then: $0) }
+        }
         updateWindow = UpdateWindowController(checker: updates) { [unowned self] in
-            UpdateInstaller.install(updates.updates) { menuBar.quitWindowManager(then: $0) }
+            updates.install(updates.updates)
         }
         updates.showUpdates = { [unowned self] in updateWindow.show() }
         menuBar.showUpdates = updates.showUpdates
