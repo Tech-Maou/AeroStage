@@ -34,7 +34,8 @@ git switch -q dev
 # 2. Signed zip; release.sh also updates the cask in the tap (on its dev branch)
 git -C "$TAP" switch -q dev
 release_build
-codesign -dvv "$APP" 2>&1 | grep -q "Authority=AeroStage Release" || die "$APP is not signed with AeroStage Release"
+# No pipe into grep -q: with pipefail, codesign's SIGPIPE would fail the check.
+[[ "$(codesign -dvv "$APP" 2>&1)" == *"Authority=AeroStage Release"* ]] || die "$APP is not signed with AeroStage Release"
 
 # 3. GitHub release, once the mirror has brought the tag over
 for _ in $(seq 1 60); do
