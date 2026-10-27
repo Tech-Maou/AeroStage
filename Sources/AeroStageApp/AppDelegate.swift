@@ -192,11 +192,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &subscriptions)
 
         NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
-            .sink { [unowned self] _ in
-                store.scheduleRefresh(after: .milliseconds(300))
-                sidebar.layout(on: store.sidebarScreen)
-            }
+            .sink { [unowned self] _ in screensMayHaveChanged() }
             .store(in: &subscriptions)
+
+        // Docking usually happens behind the lock screen, where refreshes are skipped. Catch up
+        // on unlock and wake, otherwise the sidebar keeps the previous monitor's position until
+        // the next event (e.g. switching stages).
+        DistributedNotificationCenter.default().publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
+            .receive(on: RunLoop.main)
+            .sink { [unowned self] _ in screensMayHaveChanged() }
+            .store(in: &subscriptions)
+        workspaceCenter.publisher(for: NSWorkspace.screensDidWakeNotification)
+            .sink { [unowned self] _ in screensMayHaveChanged() }
+            .store(in: &subscriptions)
+    }
+
+    /// Picks the sidebar monitor from the current screens right away (no window manager call
+    /// needed for the position) and refreshes the stages shortly after.
+    private func screensMayHaveChanged() {
+        store.resolveSidebarTarget()
+        sidebar.layout(on: store.sidebarScreen)
+        updateStageCapacity()
+        store.scheduleRefresh(after: .milliseconds(300))
+        // Screen configurations settle in steps; check once more.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self else { return }
+            store.resolveSidebarTarget()
+            sidebar.layout(on: store.sidebarScreen)
+        }
     }
 
     private func observeState() {

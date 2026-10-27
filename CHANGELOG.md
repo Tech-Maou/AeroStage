@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- The sidebar moves to the right position right away when monitors change, and after
+  unlocking or waking the Mac; before, it could keep the previous monitor's position after
+  docking until the next stage switch.
+
 ## 1.0.0
 
 First public release.
