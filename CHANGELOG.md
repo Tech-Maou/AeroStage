@@ -10,6 +10,9 @@
   title (in a browser, the title of the current tab), up to two lines.
 - The fixed AeroSpace numbering is gone; stages are always numbered by position without gaps,
   like Stage Manager. Whoever used it is switched over automatically.
+- Fixed: in the stacked and layout views, hovering, clicking and dragging a thumbnail could
+  hit the front window although another one was under the mouse; the thumbnails were only
+  drawn at their place, their mouse area stayed in the corner.
 - In reserved mode and when the window manager is not reachable, the texts name the window
   manager actually in use instead of always saying AeroSpace.
 

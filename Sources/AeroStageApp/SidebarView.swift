@@ -376,7 +376,6 @@ struct WindowStack: View {
             // The front window sits in the outer bottom corner; each layer behind it is shifted by
             // `step` towards the screen center and upwards, and slightly smaller.
             let corner: Alignment = side == .right ? .bottomTrailing : .bottomLeading
-            let direction: CGFloat = side == .right ? -1 : 1
             GeometryReader { geometry in
                 let size = geometry.size
                 let step = CGSize(width: size.width * 0.12, height: size.height * 0.12)
@@ -385,9 +384,12 @@ struct WindowStack: View {
                         let scale = 0.76 * pow(0.94, CGFloat(index))
                         WindowThumbnail(window: window, image: images[window.windowId], badgeSize: 36 * iconScale)
                             .frame(width: size.width * scale, height: size.height * scale)
-                            .offset(x: direction * step.width * CGFloat(index), y: -step.height * CGFloat(index))
                             .brightness(index == 0 ? 0 : -0.06 * Double(index))
                             .windowInteractions(window, actions: actions)
+                            // Placed by layout, not by offset: an offset only moves the drawing,
+                            // the hover and click area would stay in the corner for every layer.
+                            .padding(side == .right ? .trailing : .leading, step.width * CGFloat(index))
+                            .padding(.bottom, step.height * CGFloat(index))
                     }
                 }
                 .frame(width: size.width, height: size.height, alignment: corner)
@@ -438,8 +440,10 @@ struct StageLayout: View {
                     ForEach(placed.reversed(), id: \.window.id) { item in
                         WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 22 * iconScale)
                             .frame(width: item.frame.width * scale, height: item.frame.height * scale)
-                            .offset(x: item.frame.minX * scale, y: item.frame.minY * scale)
                             .windowInteractions(item.window, actions: actions)
+                            // Placed by layout, not by offset, so the hover and click area moves along.
+                            .padding(.leading, item.frame.minX * scale)
+                            .padding(.top, item.frame.minY * scale)
                     }
                 }
             }
