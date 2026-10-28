@@ -104,8 +104,9 @@ Stage Manager behavior (the fixed AeroSpace numbering was removed in 1.4.0, see 
 - When a stage becomes empty it disappears and the following ones move up (1, 3 → 1, 2).
 - New stages are appended at the end. AeroStage picks the internal name automatically: the
   lowest free number. The user never sees it.
-- **Reordering:** hold a card (outside its thumbnails and icons) for 0.3 s and drag it up or
-  down; the cards in between make room. Or "Move Up"/"Move Down" in the card's context menu.
+- **Reordering:** hold a card (outside its thumbnails and icons) for 0.1 s and drag it up or
+  down. The card pops out (spring to 107 %, accent border, deep shadow), the others fade to
+  75 %, and the cards in between make room. Or "Move Up"/"Move Down" in the card's context menu.
   Only AeroStage's order changes (`StageOrder.move`), no window moves.
 - AeroStage remembers the order (`stageOrder` in `UserDefaults`).
 
@@ -546,7 +547,7 @@ Each phase starts with a short alignment.
 - Fixed numbering removed: it only existed for users used to AeroSpace's names, did not fit
   reordering and doubled the shortcut, order and new-stage code. The `numbering` default is
   deleted on launch; the stage shortcuts are always `aerostage focus/move N`.
-- Reordering: `LongPressGesture(0.3 s)` sequenced before a `DragGesture` on each card, as a
+- Reordering: `LongPressGesture(0.1 s)` sequenced before a `DragGesture` on each card, as a
   simultaneous gesture so a click still switches stages. Card frames come from a preference in
   the list's coordinate space; the target index counts the cards whose center the dragged card
   passed. A press that starts on a thumbnail or icon (`WindowDragState.hoveredWindow`) is

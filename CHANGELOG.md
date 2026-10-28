@@ -2,8 +2,9 @@
 
 ## 1.4.0
 
-- **Reorder stages:** hold a stage card (outside its thumbnails and icons) for a moment, then
-  drag it up or down; the other cards make room, and the stage gets its new number. The card's
+- **Reorder stages:** hold a stage card (outside its thumbnails and icons) for a tenth of a
+  second, then drag it up or down. The card pops out with an accent border and a shadow while
+  the others step back; they make room as you drag, and the stage gets its new number. The card's
   context menu has **Move Up** and **Move Down** as well. No window is moved, the stage
   shortcuts simply follow the new numbers.
 - **Tooltips:** resting the mouse on a thumbnail or icon shows the app name and the window

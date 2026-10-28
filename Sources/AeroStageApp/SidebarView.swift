@@ -122,13 +122,20 @@ struct SidebarView: View {
         VStack(spacing: CardMetrics.spacing) {
             ForEach(Array(store.stages.enumerated()), id: \.element.id) { index, stage in
                 let lifted = reorder?.workspace == stage.workspace && reorder?.blocked == false
+                let reordering = reorder.map { !$0.blocked } ?? false
                 StageCard(stage: stage, label: stage.label, side: settings.side, style: style, previewHeight: previewHeight,
                           thumbnails: thumbnails, actions: actions, stageCount: store.stages.count)
                     .background(GeometryReader { geometry in
                         Color.clear.preference(key: CardFramesKey.self, value: [stage.workspace: geometry.frame(in: .named(Self.listSpace))])
                     })
-                    .scaleEffect(lifted ? 1.03 : 1)
-                    .shadow(color: .black.opacity(lifted ? 0.35 : 0), radius: 10, y: 4)
+                    // The grabbed card pops out towards the user; the others step back a little.
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.accentColor.opacity(lifted ? 0.9 : 0), lineWidth: 2))
+                    .scaleEffect(lifted ? 1.07 : 1)
+                    .shadow(color: .black.opacity(lifted ? 0.5 : 0), radius: lifted ? 16 : 0, y: lifted ? 8 : 0)
+                    .opacity(reordering && !lifted ? 0.75 : 1)
+                    .animation(.spring(response: 0.26, dampingFraction: 0.55), value: lifted)
+                    .animation(.easeOut(duration: 0.15), value: reordering)
                     .offset(y: reorderOffset(of: index))
                     .zIndex(lifted ? 1 : 0)
                     .simultaneousGesture(reorderGesture(for: stage))
@@ -165,9 +172,10 @@ struct SidebarView: View {
 
     private static let listSpace = "stageList"
 
-    /// Hold a card (outside its thumbnails and icons) for a moment, then drag it up or down.
+    /// Hold a card (outside its thumbnails and icons) briefly, then drag it up or down. A tenth of
+    /// a second is enough to tell it from a click, which still switches stages.
     private func reorderGesture(for stage: Stage) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.3)
+        LongPressGesture(minimumDuration: 0.1)
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.listSpace)))
             .onChanged { value in
                 switch value {
