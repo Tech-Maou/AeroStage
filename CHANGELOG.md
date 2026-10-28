@@ -16,6 +16,9 @@
   drawn at their place, their mouse area stayed in the corner.
 - In reserved mode and when the window manager is not reachable, the texts name the window
   manager actually in use instead of always saying AeroSpace.
+- Use it with AeroStage WM 0.21.3-stage.5: older versions quit after typing into a password
+  field (macOS Secure Input), which put all windows on one stage until AeroStage brought them
+  back after a restart.
 
 ## 1.3.3
 

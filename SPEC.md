@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **1.3.3**. Sections 1–8 describe the current state; sections 9 and later record the
+Status: **1.4.0**. Sections 1–8 describe the current state; sections 9 and later record the
 findings and decisions per version.
 
 AeroStage is a native macOS companion app for the tiling window manager **AeroStage WM**, a
@@ -554,6 +554,9 @@ Each phase starts with a short alignment.
   ignored, so dragging a window keeps working. The overlay does not hide while the mouse button
   is down.
 - Tooltip: `WindowTooltip` (see 3.3).
+- AeroStage WM 0.21.3-stage.5: `applicationShouldTerminateAfterLastWindowClosed` returns false.
+  With its menu bar item hidden, the Secure Input badge (shown while a password field has
+  focus) was its only window, and SwiftUI quit the app when the badge closed.
 
 ## 26. Open
 

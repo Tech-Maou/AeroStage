@@ -272,7 +272,8 @@ correct.
   screen is locked; AeroStage then needs no check at all.
 - AeroStage WM is a **thin fork**: AeroSpace's code with as few, well-separated changes as
   possible: new name, the extra `subscribe` event, a menu bar item that AeroStage can hide,
-  windows returned to the screen on every regular quit, and a build script. It keeps AeroSpace's
+  windows returned to the screen on every regular quit, no quitting when its last window
+  closes, and a build script. It keeps AeroSpace's
   history, so new AeroSpace releases can be taken over by rebasing these changes.
 - It has its **own name** because the MIT license covers the code but grants no rights to the
   name "AeroSpace", and because an app called AeroSpace with a different behavior would be
