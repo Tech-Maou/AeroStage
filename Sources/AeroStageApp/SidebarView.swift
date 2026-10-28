@@ -441,9 +441,10 @@ struct StageLayout: View {
                         WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 22 * iconScale)
                             .frame(width: item.frame.width * scale, height: item.frame.height * scale)
                             .windowInteractions(item.window, actions: actions)
-                            // Placed by layout, not by offset, so the hover and click area moves along.
-                            .padding(.leading, item.frame.minX * scale)
-                            .padding(.top, item.frame.minY * scale)
+                            // Placed by layout, not by offset, so the hover and click area moves
+                            // along. `position` also takes windows partly off screen (negative x/y),
+                            // where padding would be negative and crash the layout.
+                            .position(x: item.frame.midX * scale, y: item.frame.midY * scale)
                     }
                 }
             }
