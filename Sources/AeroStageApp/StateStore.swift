@@ -249,6 +249,14 @@ final class StateStore: ObservableObject {
         if monitor != sidebarMonitor { sidebarMonitor = monitor }
     }
 
+    /// Puts a stage at a new position (drag in the sidebar, Move Up/Down). Only AeroStage's order
+    /// changes; the workspaces and their windows stay as they are.
+    func moveStage(_ workspace: String, toPosition position: Int) {
+        order.move(workspace, toPosition: position)
+        settings.stageOrder = order.names
+        restage()
+    }
+
     /// Rebuilds the stage list from the last refresh.
     func restage() {
         guard let monitorId = sidebarMonitor?.monitorId else {
@@ -259,8 +267,8 @@ final class StateStore: ObservableObject {
         var present = Set(byWorkspace.keys)
         if let activeWorkspace { present.insert(activeWorkspace) }
 
-        order.reconcile(with: present, mode: settings.numbering)
-        if settings.numbering == .dynamic { settings.stageOrder = order.names }
+        order.reconcile(with: present)
+        settings.stageOrder = order.names
 
         let newStages = order.names.enumerated().map { index, name in
             Stage(workspace: name, position: index + 1, windows: frontFirst(byWorkspace[name] ?? [], in: name), isFocused: name == activeWorkspace)

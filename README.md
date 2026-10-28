@@ -45,8 +45,12 @@ the window manager, but clicking a stage or a window works just as well.
   or close the whole stage.
 - Floating windows carry a small neutral mark (two overlapping windows) in the top left
   corner of their thumbnail or icon.
-- **Dynamic numbering** like Stage Manager: stages appear and disappear automatically and
-  the numbers close up without gaps. Classic fixed AeroSpace numbering is available too.
+- **Numbering** like Stage Manager: stages appear and disappear automatically and the numbers
+  close up without gaps.
+- **Reorder stages:** hold a card (outside its thumbnails) for a moment and drag it to a new
+  place, or use **Move Up/Down** in its context menu. The shortcuts follow the new numbers.
+- **Tooltips:** rest the mouse on a thumbnail or icon to see the app and the window title, for
+  example the tab title in a browser.
 - When the last window of the visible stage is closed, minimized or moved away, AeroStage
   shows the stage above it (or the next one if it was the first).
 - **Monitor priority list:** the sidebar appears on your preferred connected monitor (e.g.

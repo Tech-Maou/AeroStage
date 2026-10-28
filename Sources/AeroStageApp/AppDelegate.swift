@@ -171,6 +171,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             resetStageLayout: { [unowned self] workspace in
                 run { try await $0.resetLayout(workspace: workspace) }
             },
+            // Only AeroStage's order changes; the stage shortcuts are positions anyway.
+            moveStage: { [unowned self] in store.moveStage($0, toPosition: $1) },
+            hoverWindow: { [unowned self] in sidebar.hoverWindow($0, rect: $1) },
             canAddStage: { [unowned self] in commands.newStageName() != nil },
             openSettings: { [unowned self] in settingsWindow.show() },
             hideSidebar: { [unowned self] in settings.sidebarVisible = false },
@@ -373,7 +376,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 side: settings.side,
                 sidebarGap: screen.map { sidebar.reservedGap(on: $0) } ?? 0),
             bindings: .init(
-                mode: settings.numbering,
                 modifier: settings.modifier,
                 maxStages: settings.maxStages,
                 cliPath: Self.cliPath))

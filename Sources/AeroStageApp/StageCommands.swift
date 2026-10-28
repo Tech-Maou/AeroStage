@@ -83,9 +83,7 @@ final class StageCommands {
     /// Workspace name for a new stage; `nil` when the maximum is reached.
     func newStageName() -> String? {
         guard store.stages.count < settings.maxStages else { return nil }
-        return settings.numbering == .fixed
-            ? String(store.stages.count + 1)
-            : StageOrder.nextFreeName(excluding: store.allWorkspaces)
+        return StageOrder.nextFreeName(excluding: store.allWorkspaces)
     }
 
     private var status: String {

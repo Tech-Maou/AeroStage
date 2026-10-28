@@ -16,6 +16,10 @@ struct SidebarActions {
     var closeStage: (String) -> Void
     var setStageLayout: (String, String) -> Void
     var resetStageLayout: (String) -> Void
+    /// Puts a stage at a 1-based position.
+    var moveStage: (String, Int) -> Void
+    /// The mouse rests on a window (tooltip) or left it (`nil`); frame in panel coordinates.
+    var hoverWindow: (AeroWindow?, CGRect) -> Void
     var canAddStage: () -> Bool
     var openSettings: () -> Void
     var hideSidebar: () -> Void
@@ -59,6 +63,8 @@ struct SidebarView: View {
     @ObservedObject var thumbnails: ThumbnailService
     let dragState: WindowDragState
     @ObservedObject var watch: WindowManagerWatch
+    @State private var reorder: Reorder?
+    @State private var cardFrames: [String: CGRect] = [:]
     let actions: SidebarActions
 
     /// Thumbnails only with permission, icons otherwise.
@@ -114,9 +120,18 @@ struct SidebarView: View {
 
     private func cards(previewHeight: CGFloat?) -> some View {
         VStack(spacing: CardMetrics.spacing) {
-            ForEach(store.stages) { stage in
-                StageCard(stage: stage, label: stage.label(for: settings.numbering), side: settings.side,
-                          style: style, previewHeight: previewHeight, thumbnails: thumbnails, actions: actions)
+            ForEach(Array(store.stages.enumerated()), id: \.element.id) { index, stage in
+                let lifted = reorder?.workspace == stage.workspace && reorder?.blocked == false
+                StageCard(stage: stage, label: stage.label, side: settings.side, style: style, previewHeight: previewHeight,
+                          thumbnails: thumbnails, actions: actions, stageCount: store.stages.count)
+                    .background(GeometryReader { geometry in
+                        Color.clear.preference(key: CardFramesKey.self, value: [stage.workspace: geometry.frame(in: .named(Self.listSpace))])
+                    })
+                    .scaleEffect(lifted ? 1.03 : 1)
+                    .shadow(color: .black.opacity(lifted ? 0.35 : 0), radius: 10, y: 4)
+                    .offset(y: reorderOffset(of: index))
+                    .zIndex(lifted ? 1 : 0)
+                    .simultaneousGesture(reorderGesture(for: stage))
             }
             if actions.canAddStage() {
                 NewStageZone(actions: actions)
@@ -131,6 +146,88 @@ struct SidebarView: View {
         }
         .padding(CardMetrics.outerPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .coordinateSpace(name: Self.listSpace)
+        .onPreferenceChange(CardFramesKey.self) { frames in
+            MainActor.assumeIsolated { cardFrames = frames }
+        }
+        .animation(.spring(duration: 0.25), value: reorderTarget)
+    }
+
+    // MARK: Reordering stages
+
+    /// A stage being dragged to a new position after holding its card.
+    struct Reorder: Equatable {
+        var workspace: String
+        var translation: CGFloat = 0
+        /// The press started on a window: that drag moves the window, not the stage.
+        var blocked: Bool
+    }
+
+    private static let listSpace = "stageList"
+
+    /// Hold a card (outside its thumbnails and icons) for a moment, then drag it up or down.
+    private func reorderGesture(for stage: Stage) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.3)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.listSpace)))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    // A new press: decide once whether it may move the stage.
+                    reorder = Reorder(workspace: stage.workspace, blocked: dragState.hoveredWindow != nil)
+                    if reorder?.blocked == false {
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                    }
+                case .second(true, let drag?):
+                    guard reorder?.workspace == stage.workspace, reorder?.blocked == false else { return }
+                    reorder?.translation = drag.translation.height
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in
+                defer { reorder = nil }
+                guard let reorder, !reorder.blocked, let target = reorderTarget,
+                      let from = store.stages.firstIndex(where: { $0.workspace == reorder.workspace }),
+                      target != from
+                else { return }
+                // Order change and offset reset in one transaction, so the cards do not jump.
+                withAnimation(.spring(duration: 0.25)) {
+                    actions.moveStage(reorder.workspace, target + 1)
+                }
+            }
+    }
+
+    /// Index the dragged card would land on: past every card whose center it crossed.
+    private var reorderTarget: Int? {
+        guard let reorder, !reorder.blocked,
+              let from = store.stages.firstIndex(where: { $0.workspace == reorder.workspace }),
+              let frame = cardFrames[reorder.workspace]
+        else { return nil }
+        let center = frame.midY + reorder.translation
+        let others = store.stages.enumerated().filter { $0.offset != from }
+        let passed = others.filter { (cardFrames[$0.element.workspace]?.midY ?? .infinity) < center }.count
+        return passed
+    }
+
+    /// The dragged card follows the mouse; the cards between its old and new place make room.
+    private func reorderOffset(of index: Int) -> CGFloat {
+        guard let reorder, !reorder.blocked, let target = reorderTarget,
+              let from = store.stages.firstIndex(where: { $0.workspace == reorder.workspace }),
+              let height = cardFrames[reorder.workspace]?.height
+        else { return 0 }
+        if index == from { return reorder.translation }
+        let gap = height + CardMetrics.spacing
+        if from < index && index <= target { return -gap }
+        if target <= index && index < from { return gap }
+        return 0
+    }
+}
+
+struct CardFramesKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] { [:] }
+
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }
 
@@ -146,6 +243,7 @@ struct StageCard: View {
     // Observed so new images redraw the card even when the stage itself is unchanged.
     @ObservedObject var thumbnails: ThumbnailService
     let actions: SidebarActions
+    let stageCount: Int
     @State private var hovering = false
     @State private var dropTargeted = false
     @EnvironmentObject private var dragState: WindowDragState
@@ -194,6 +292,10 @@ struct StageCard: View {
                 Button("Reset Layout") { actions.resetStageLayout(stage.workspace) }
             }
             .disabled(stage.windows.isEmpty)
+            Button("Move Up") { actions.moveStage(stage.workspace, stage.position - 1) }
+                .disabled(stage.position <= 1)
+            Button("Move Down") { actions.moveStage(stage.workspace, stage.position + 1) }
+                .disabled(stage.position >= stageCount)
             Divider()
             Button(stage.windows.count == 1 ? "Close Stage (1 Window)" : "Close Stage (\(stage.windows.count) Windows)") {
                 actions.closeStage(stage.workspace)
@@ -425,7 +527,6 @@ struct WindowThumbnail: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        .help(window.windowTitle.isEmpty ? window.appName : "\(window.appName) – \(window.windowTitle)")
     }
 }
 
@@ -441,7 +542,6 @@ struct WindowIcon: View {
             .overlay(alignment: .topLeading) {
                 if window.isFloating { FloatingBadge(size: size * 0.38).offset(x: -size * 0.06, y: -size * 0.06) }
             }
-            .help(window.windowTitle.isEmpty ? window.appName : "\(window.appName) – \(window.windowTitle)")
     }
 }
 
@@ -556,10 +656,38 @@ struct NewStageZone: View {
     }
 }
 
+/// Tracks the window under the mouse: holding a thumbnail never moves the stage, and resting on
+/// it shows the tooltip with app name and window title.
+private struct WindowHover: ViewModifier {
+    @EnvironmentObject private var dragState: WindowDragState
+    let window: AeroWindow
+    let actions: SidebarActions
+    @State private var frame: CGRect = .zero
+
+    func body(content: Content) -> some View {
+        content
+            .background(GeometryReader { geometry in
+                Color.clear
+                    .onAppear { frame = geometry.frame(in: .global) }
+                    .onChange(of: geometry.frame(in: .global)) { _, new in frame = new }
+            })
+            .onHover { inside in
+                if inside {
+                    dragState.hoveredWindow = window.windowId
+                    actions.hoverWindow(window, frame)
+                } else if dragState.hoveredWindow == window.windowId {
+                    dragState.hoveredWindow = nil
+                    actions.hoverWindow(nil, .zero)
+                }
+            }
+    }
+}
+
 extension View {
     /// Click to focus, drag to another stage, context menu: shared by thumbnails and icons.
     func windowInteractions(_ window: AeroWindow, actions: SidebarActions) -> some View {
-        onTapGesture { actions.focusWindow(window.windowId) }
+        modifier(WindowHover(window: window, actions: actions))
+            .onTapGesture { actions.focusWindow(window.windowId) }
             .draggable(String(window.windowId)) {
                 Image(nsImage: IconCache.shared.icon(for: window))
                     .resizable()

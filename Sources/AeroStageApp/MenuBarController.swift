@@ -62,11 +62,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         // A dot in the glyph while an update is available.
         item?.button?.image = updates.updates.isEmpty ? Self.glyph : Self.glyphWithDot
         let active = store.stages.first(where: \.isFocused)
-        let number = settings.showStageNumber ? active.map { $0.label(for: settings.numbering) } ?? "" : ""
+        let number = settings.showStageNumber ? active.map { $0.label } ?? "" : ""
         item?.button?.attributedTitle = NSAttributedString(
             string: number.isEmpty ? "" : " \(number)",
             attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .medium)])
-        item?.button?.toolTip = active.map { "AeroStage – Stage \($0.label(for: settings.numbering))" } ?? "AeroStage"
+        item?.button?.toolTip = active.map { "AeroStage – Stage \($0.label)" } ?? "AeroStage"
     }
 
     // MARK: Menu
@@ -97,7 +97,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
         for stage in store.stages {
             let names = stage.windows.map(\.appName).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
-            let title = "\(stage.label(for: settings.numbering))  \(names.isEmpty ? "Empty" : names.joined(separator: ", "))"
+            let title = "\(stage.label)  \(names.isEmpty ? "Empty" : names.joined(separator: ", "))"
             let entry = menu.addItem(title) { [weak self] in self?.focusWorkspace(stage.workspace) }
             entry.state = stage.isFocused ? .on : .off
         }

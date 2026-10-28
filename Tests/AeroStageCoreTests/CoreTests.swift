@@ -5,23 +5,35 @@ import Testing
 @Suite struct StageOrderTests {
     @Test func dynamicKeepsOrderAndAppendsNew() {
         var order = StageOrder(names: ["3", "1"])
-        order.reconcile(with: ["1", "3", "2"], mode: .dynamic)
+        order.reconcile(with: ["1", "3", "2"])
         #expect(order.names == ["3", "1", "2"])
     }
 
     @Test func dynamicClosesGaps() {
         var order = StageOrder(names: ["1", "2", "3"])
-        order.reconcile(with: ["1", "3"], mode: .dynamic)
+        order.reconcile(with: ["1", "3"])
         #expect(order.names == ["1", "3"])
         #expect(order.name(atPosition: 2) == "3")
         #expect(order.position(of: "3") == 2)
         #expect(order.name(atPosition: 3) == nil)
     }
 
-    @Test func fixedSortsNumerically() {
-        var order = StageOrder(names: ["3", "1"])
-        order.reconcile(with: ["10", "2", "1"], mode: .fixed)
+    @Test func newStagesSortNumerically() {
+        var order = StageOrder()
+        order.reconcile(with: ["10", "2", "1"])
         #expect(order.names == ["1", "2", "10"])
+    }
+
+    @Test func moveShiftsStagesInBetween() {
+        var order = StageOrder(names: ["1", "2", "3", "4"])
+        order.move("4", toPosition: 2)
+        #expect(order.names == ["1", "4", "2", "3"])
+        order.move("1", toPosition: 4)
+        #expect(order.names == ["4", "2", "3", "1"])
+        order.move("3", toPosition: 99)
+        #expect(order.names == ["4", "2", "1", "3"])
+        order.move("unknown", toPosition: 1)
+        #expect(order.names == ["4", "2", "1", "3"])
     }
 
     @Test func neighborWrapsAround() {
@@ -81,17 +93,11 @@ import Testing
     }
 
     @Test func dynamicBindingsCallCli() {
-        let body = ManagedConfig.stagesBody(.init(mode: .dynamic, modifier: "ctrl-alt", maxStages: 5, cliPath: "/x/aerostage"))
+        let body = ManagedConfig.stagesBody(.init(modifier: "ctrl-alt", maxStages: 5, cliPath: "/x/aerostage"))
         #expect(body.contains(#"    ctrl-alt-5 = 'exec-and-forget "/x/aerostage" focus 5'"#))
         #expect(body.contains(#"    ctrl-alt-shift-1 = 'exec-and-forget "/x/aerostage" move 1'"#))
         #expect(!body.contains { $0.contains("ctrl-alt-6") })
         #expect(body.contains(#"    alt-tab = 'exec-and-forget "/x/aerostage" next'"#))
-    }
-
-    @Test func fixedBindingsUseAeroSpace() {
-        let body = ManagedConfig.stagesBody(.init(mode: .fixed, modifier: "ctrl-alt", maxStages: 7, cliPath: "/x/aerostage"))
-        #expect(body.contains("    ctrl-alt-7 = 'workspace 7'"))
-        #expect(body.contains("    ctrl-alt-shift-7 = 'move-node-to-workspace 7'"))
     }
 
     @Test func readsAndWritesBoolSettings() throws {
@@ -142,7 +148,7 @@ import Testing
     @Test func managedShortcutsDoNotCollide() {
         for modifier in KeyboardPreset.modifiers {
             let lines = ManagedConfig.bindingsBody(modifier: modifier)
-                + ManagedConfig.stagesBody(.init(mode: .dynamic, modifier: modifier, maxStages: 9, cliPath: "/x"))
+                + ManagedConfig.stagesBody(.init(modifier: modifier, maxStages: 9, cliPath: "/x"))
             let keys = lines.compactMap { $0.split(separator: "=").first?.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !$0.hasPrefix("#") }
             #expect(Set(keys).count == keys.count, "duplicate shortcut for \(modifier)")

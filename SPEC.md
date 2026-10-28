@@ -75,7 +75,10 @@ Side: left or right, **right by default**.
 - The active stage is highlighted.
 - Background color and opacity (default black at 30 %), optional blur; title color
   (default white, with a soft shadow) and size (default 14 pt, the number 3 pt larger).
-- Tooltip on hover: app name and window title.
+- Tooltip after resting 0.5 s on a thumbnail or icon: app name (bold) and window title (at
+  most two lines, then cut off with "…", at most 300 pt wide). Drawn in its own click-through
+  panel beside the sidebar, because macOS shows no `.help` tooltips for the never-active
+  sidebar panel. Hidden on click, drag, context menu and when the overlay hides.
 - Width in **% of the monitor width**, clamped by minimum and maximum in points, so it fits
   on a 5K ultrawide as well as on a laptop display.
 
@@ -95,21 +98,18 @@ The panel never takes keyboard focus (non-activating `NSPanel`) and is visible o
 
 ### 3.5 Numbering
 
-Setting **"Numbering"**:
+Stage Manager behavior (the fixed AeroSpace numbering was removed in 1.4.0, see 25):
 
-- **Dynamic (default, Stage Manager behavior):**
-  - The position is shown, not the name.
-  - When a stage becomes empty it disappears and the following ones move up (1, 3 → 1, 2).
-  - New stages are appended at the end.
-  - AeroStage picks the internal name automatically: the lowest free number. The user
-    never sees it.
-  - AeroStage remembers the order itself; after a restart it is sorted by name.
-- **Fixed (classic AeroSpace):**
-  - The real name is shown.
-  - Gaps remain (1, 3).
-  - Shortcuts go straight to AeroSpace.
+- The position is shown, not the workspace name.
+- When a stage becomes empty it disappears and the following ones move up (1, 3 → 1, 2).
+- New stages are appended at the end. AeroStage picks the internal name automatically: the
+  lowest free number. The user never sees it.
+- **Reordering:** hold a card (outside its thumbnails and icons) for 0.3 s and drag it up or
+  down; the cards in between make room. Or "Move Up"/"Move Down" in the card's context menu.
+  Only AeroStage's order changes (`StageOrder.move`), no window moves.
+- AeroStage remembers the order (`stageOrder` in `UserDefaults`).
 
-Internal names are deliberately numbers, so AeroSpace keeps working sensibly without
+Internal names are deliberately numbers, so the window manager keeps working sensibly without
 AeroStage.
 
 Maximum number of stages: computed per sidebar monitor (see 15), between 3 and 9.
@@ -136,8 +136,6 @@ Colemak → US, everything else → International). Added or replaced (shown for
 | `alt-shift-tab` | `aerostage prev` | Previous stage |
 | `ctrl-alt-s` | `aerostage toggle` | Show/hide the sidebar |
 
-In fixed mode AeroStage writes the plain AeroSpace commands instead (`workspace N`,
-`move-node-to-workspace N`).
 
 ### 3.7 Settings
 
@@ -146,7 +144,7 @@ A settings window with a sidebar (`NavigationSplitView`), reachable via the menu
 
 - **AeroStage**
   - **General:** launch at login (`SMAppService.mainApp`), mode (reserved/overlay, edge
-    trigger, delay), side and width, monitor priority list, numbering (dynamic/fixed)
+    trigger, delay), side and width, monitor priority list, stage limit
   - **Appearance:** view, thumbnail refresh interval, Screen Recording status, icon size,
     background color/opacity/blur, title color and size
   - **Menu Bar:** show the item, show the stage number, hide AeroStage WM's own item
@@ -543,7 +541,20 @@ Each phase starts with a short alignment.
   the same app.
 - AeroStage WM 0.21.3-stage.4: no ⌘Q/⌘E on its menu items.
 
-## 25. Open
+## 25. 1.4.0: reordering, tooltips, one numbering
+
+- Fixed numbering removed: it only existed for users used to AeroSpace's names, did not fit
+  reordering and doubled the shortcut, order and new-stage code. The `numbering` default is
+  deleted on launch; the stage shortcuts are always `aerostage focus/move N`.
+- Reordering: `LongPressGesture(0.3 s)` sequenced before a `DragGesture` on each card, as a
+  simultaneous gesture so a click still switches stages. Card frames come from a preference in
+  the list's coordinate space; the target index counts the cards whose center the dragged card
+  passed. A press that starts on a thumbnail or icon (`WindowDragState.hoveredWindow`) is
+  ignored, so dragging a window keeps working. The overlay does not hide while the mouse button
+  is down.
+- Tooltip: `WindowTooltip` (see 3.3).
+
+## 26. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

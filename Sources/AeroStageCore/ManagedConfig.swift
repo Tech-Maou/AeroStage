@@ -28,13 +28,11 @@ public enum ManagedConfig {
     }
 
     public struct BindingOptions: Equatable, Sendable {
-        public var mode: NumberingMode
         public var modifier: String
         public var maxStages: Int
         public var cliPath: String
 
-        public init(mode: NumberingMode, modifier: String, maxStages: Int, cliPath: String) {
-            self.mode = mode
+        public init(modifier: String, maxStages: Int, cliPath: String) {
             self.modifier = modifier
             self.maxStages = maxStages
             self.cliPath = cliPath
@@ -94,18 +92,10 @@ public enum ManagedConfig {
         let cli = "exec-and-forget \"\(options.cliPath)\""
         let range = 1...max(1, min(options.maxStages, 9))
         var lines: [String] = []
-        switch options.mode {
-        case .dynamic:
-            lines.append("    # Dynamic: positions instead of names, translated by AeroStage")
-            lines += range.map { "    \(mod)-\($0) = '\(cli) focus \($0)'" }
-            lines.append("")
-            lines += range.map { "    \(mod)-shift-\($0) = '\(cli) move \($0)'" }
-        case .fixed:
-            lines.append("    # Fixed: real AeroSpace workspace names")
-            lines += range.map { "    \(mod)-\($0) = 'workspace \($0)'" }
-            lines.append("")
-            lines += range.map { "    \(mod)-shift-\($0) = 'move-node-to-workspace \($0)'" }
-        }
+        lines.append("    # Positions instead of workspace names, translated by AeroStage")
+        lines += range.map { "    \(mod)-\($0) = '\(cli) focus \($0)'" }
+        lines.append("")
+        lines += range.map { "    \(mod)-shift-\($0) = '\(cli) move \($0)'" }
         lines += [
             "",
             "    \(mod)-n = '\(cli) new'",

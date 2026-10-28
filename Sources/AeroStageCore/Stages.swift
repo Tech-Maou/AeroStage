@@ -1,12 +1,5 @@
 import Foundation
 
-public enum NumberingMode: String, Codable, CaseIterable, Sendable {
-    /// Gapless positions, new stages at the end, names picked by AeroStage.
-    case dynamic
-    /// The real AeroSpace names, gaps remain.
-    case fixed
-}
-
 public enum SidebarSide: String, Codable, CaseIterable, Sendable {
     case left, right
 }
@@ -53,10 +46,8 @@ public struct Stage: Identifiable, Hashable, Sendable {
 
     public var id: String { workspace }
 
-    /// The number shown on the card.
-    public func label(for mode: NumberingMode) -> String {
-        mode == .dynamic ? String(position) : workspace
-    }
+    /// The number shown on the card: the gapless position, not the workspace name.
+    public var label: String { String(position) }
 
     public init(workspace: String, position: Int, windows: [AeroWindow], isFocused: Bool) {
         self.workspace = workspace
@@ -66,7 +57,8 @@ public struct Stage: Identifiable, Hashable, Sendable {
     }
 }
 
-/// Order of the stages. Known workspaces keep their place, new ones go to the end.
+/// Order of the stages: gapless positions like Stage Manager. Known workspaces keep their place,
+/// new ones go to the end, and the user can reorder them. Workspace names never change.
 public struct StageOrder: Equatable, Sendable {
     public private(set) var names: [String]
 
@@ -75,17 +67,19 @@ public struct StageOrder: Equatable, Sendable {
     }
 
     /// Reconciles the order with the workspaces currently present.
-    public mutating func reconcile(with present: some Sequence<String>, mode: NumberingMode) {
+    public mutating func reconcile(with present: some Sequence<String>) {
         let presentSet = Set(present)
-        switch mode {
-        case .fixed:
-            names = presentSet.sorted(by: Self.numericLess)
-        case .dynamic:
-            var kept = names.filter { presentSet.contains($0) }
-            let known = Set(kept)
-            kept += presentSet.subtracting(known).sorted(by: Self.numericLess)
-            names = kept
-        }
+        var kept = names.filter { presentSet.contains($0) }
+        let known = Set(kept)
+        kept += presentSet.subtracting(known).sorted(by: Self.numericLess)
+        names = kept
+    }
+
+    /// Moves a stage to a 1-based position; the stages in between shift by one.
+    public mutating func move(_ name: String, toPosition position: Int) {
+        guard let from = names.firstIndex(of: name) else { return }
+        names.remove(at: from)
+        names.insert(name, at: min(max(position - 1, 0), names.count))
     }
 
     /// Workspace name at a 1-based position.

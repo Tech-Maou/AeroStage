@@ -54,6 +54,7 @@ final class SidebarController {
     private var menuObservers: [NSObjectProtocol] = []
 
     private(set) var isShown = false
+    private lazy var tooltip = WindowTooltip(sidebar: panel, settings: settings)
     var onVisibilityChange: ((Bool) -> Void)?
 
     init(store: StateStore, settings: AppSettings, thumbnails: ThumbnailService, dragState: WindowDragState,
@@ -163,7 +164,13 @@ final class SidebarController {
         hideTask = nil
     }
 
+    /// Tooltip for the window under the mouse (`nil`: the mouse left it).
+    func hoverWindow(_ window: AeroWindow?, rect: CGRect) {
+        tooltip.hover(isShown ? window : nil, rect: rect)
+    }
+
     private func setShown(_ shown: Bool, animated: Bool) {
+        if !shown { tooltip.hide() }
         cancelReveal()
         cancelHide()
         guard shown != isShown || (shown && !panel.isVisible) else { return }

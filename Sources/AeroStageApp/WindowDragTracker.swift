@@ -10,6 +10,8 @@ final class WindowDragState: ObservableObject {
     }
 
     @Published var hovered: Target?
+    /// Window thumbnail or icon under the mouse; pressing there drags the window, not the stage.
+    var hoveredWindow: Int?
     /// Frames of the drop targets in the panel's content view (top-left origin).
     var frames: [Target: CGRect] = [:]
 }

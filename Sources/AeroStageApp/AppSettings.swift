@@ -45,7 +45,6 @@ final class AppSettings: ObservableObject {
     @Published var maxWidth: Double { didSet { defaults.set(maxWidth, forKey: "maxWidth") } }
     /// Monitor names in descending priority; `MonitorResolver.builtinToken` stands for the built-in display.
     @Published var monitorPriority: [String] { didSet { defaults.set(monitorPriority, forKey: "monitorPriority") } }
-    @Published var numbering: NumberingMode { didSet { defaults.set(numbering.rawValue, forKey: "numbering") } }
     @Published var showMenuBarItem: Bool { didSet { defaults.set(showMenuBarItem, forKey: "showMenuBarItem") } }
     @Published var showStageNumber: Bool { didSet { defaults.set(showStageNumber, forKey: "showStageNumber") } }
     /// AeroStage WM only: hide its own menu bar item, AeroStage shows a better one.
@@ -90,7 +89,8 @@ final class AppSettings: ObservableObject {
         minWidth = d.object(forKey: "minWidth") as? Double ?? 120
         maxWidth = d.object(forKey: "maxWidth") as? Double ?? 260
         monitorPriority = d.stringArray(forKey: "monitorPriority") ?? []
-        numbering = NumberingMode(rawValue: d.string(forKey: "numbering") ?? "") ?? .dynamic
+        // Fixed numbering was removed in 1.4.0; everyone uses positions now.
+        d.removeObject(forKey: "numbering")
         // First launch: alt on US layouts like AeroSpace, ctrl-alt where alt+key types characters.
         modifier = d.string(forKey: "modifier") ?? KeyboardLayout.suggestedPreset.modifier ?? "ctrl-alt"
         manageConfig = d.object(forKey: "manageConfig") as? Bool ?? true

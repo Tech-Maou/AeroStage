@@ -132,7 +132,7 @@ struct SettingsView: View {
         keys.contains { config.values[$0] == nil }
     }
 
-    // MARK: General: mode, position, monitors, numbering
+    // MARK: General: mode, position, monitors, stages
 
     private var general: some View {
         Form {
@@ -220,14 +220,11 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("Numbering", selection: $settings.numbering) {
-                    Text("Dynamic (positions)").tag(NumberingMode.dynamic)
-                    Text("Fixed (AeroSpace names)").tag(NumberingMode.fixed)
-                }
+                LabeledContent("Stages on this monitor", value: "up to \(settings.maxStages)")
             } header: {
                 Text("Stages")
             } footer: {
-                Text("Up to \(settings.maxStages) stages on this monitor. The number follows the monitor's height, the sidebar width and the view, between 3 and 9.")
+                Text("The number follows the monitor's height, the sidebar width and the view, between 3 and 9. Stages are numbered by position without gaps; to reorder them, hold a card and drag it.")
                     .foregroundStyle(.secondary)
             }
         }

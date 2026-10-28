@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.4.0
+
+- **Reorder stages:** hold a stage card (outside its thumbnails and icons) for a moment, then
+  drag it up or down; the other cards make room, and the stage gets its new number. The card's
+  context menu has **Move Up** and **Move Down** as well. No window is moved, the stage
+  shortcuts simply follow the new numbers.
+- **Tooltips:** resting the mouse on a thumbnail or icon shows the app name and the window
+  title (in a browser, the title of the current tab), up to two lines.
+- The fixed AeroSpace numbering is gone; stages are always numbered by position without gaps,
+  like Stage Manager. Whoever used it is switched over automatically.
+- In reserved mode and when the window manager is not reachable, the texts name the window
+  manager actually in use instead of always saying AeroSpace.
+
 ## 1.3.3
 
 - Fixed: after the window manager restarted (for example during an update), the sidebar could
