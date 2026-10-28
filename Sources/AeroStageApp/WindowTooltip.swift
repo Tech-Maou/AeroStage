@@ -87,7 +87,7 @@ struct WindowTooltipView: View {
                 Text(title)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .truncationMode(.tail)
             }
         }

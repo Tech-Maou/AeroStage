@@ -75,8 +75,8 @@ Side: left or right, **right by default**.
 - The active stage is highlighted.
 - Background color and opacity (default black at 30 %), optional blur; title color
   (default white, with a soft shadow) and size (default 14 pt, the number 3 pt larger).
-- Tooltip after resting 0.5 s on a thumbnail or icon: app name (bold) and window title (at
-  most two lines, then cut off with "…", at most 300 pt wide). Drawn in its own click-through
+- Tooltip after resting 0.5 s on a thumbnail or icon: app name (bold) and window title (one
+  line, cut off with "…", at most 300 pt wide). Drawn in its own click-through
   panel beside the sidebar, because macOS shows no `.help` tooltips for the never-active
   sidebar panel. Hidden on click, drag, context menu and when the overlay hides.
 - Width in **% of the monitor width**, clamped by minimum and maximum in points, so it fits

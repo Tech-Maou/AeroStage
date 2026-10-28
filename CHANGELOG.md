@@ -8,7 +8,7 @@
   context menu has **Move Up** and **Move Down** as well. No window is moved, the stage
   shortcuts simply follow the new numbers.
 - **Tooltips:** resting the mouse on a thumbnail or icon shows the app name and the window
-  title (in a browser, the title of the current tab), up to two lines.
+  title (in a browser, the title of the current tab) in one line below it.
 - The fixed AeroSpace numbering is gone; stages are always numbered by position without gaps,
   like Stage Manager. Whoever used it is switched over automatically.
 - Fixed: in the stacked and layout views, hovering, clicking and dragging a thumbnail could
