@@ -22,7 +22,16 @@ final class ThumbnailService: ObservableObject {
     /// Live refresh interval; `nil` = only on changes.
     var interval: Duration? = .seconds(3)
     /// Window area of the sidebar monitor in global CG coordinates (without the sidebar).
-    var canvas: CGRect = .zero
+    var canvas: CGRect = .zero {
+        didSet {
+            // Positions are relative to the old monitor (e.g. after undocking from an external
+            // display). Windows of hidden stages would be drawn off the card; forget them, so
+            // those stages show their windows side by side until they are visible again.
+            guard canvas.size != oldValue.size, !oldValue.isEmpty else { return }
+            frames = [:]
+            pendingFrames.removeAll()
+        }
+    }
 
     private(set) var lastCapture: Date?
     /// While true, new images are held back. Publishing redraws the sidebar, and SwiftUI then

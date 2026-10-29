@@ -468,7 +468,9 @@ struct StageLayout: View {
     /// like AeroSpace's default tiling will arrange them.
     private func placements() -> [(window: AeroWindow, frame: CGRect)] {
         let known = windows.compactMap { window in frames[window.windowId].map { (window, $0) } }
-        if known.count == windows.count, !overlaps(known.map(\.1)) {
+        // Positions far outside the canvas belong to another monitor setup.
+        let bounds = CGRect(origin: .zero, size: canvas).insetBy(dx: -canvas.width * 0.1, dy: -canvas.height * 0.1)
+        if known.count == windows.count, !overlaps(known.map(\.1)), known.allSatisfy({ bounds.contains($0.1) }) {
             return known
         }
         // Keep the remembered left-to-right order, windows without a position at the end.

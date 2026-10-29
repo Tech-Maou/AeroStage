@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Fixed: after undocking from an external monitor (or docking), the layout view still drew
+  the windows of background stages at their old positions, so they stuck out of the card.
+  Positions from the previous monitor are now discarded; those stages show their windows side
+  by side until they have been visible once.
+
 ## 1.4.0
 
 - **Reorder stages:** hold a stage card (outside its thumbnails and icons) for a tenth of a
