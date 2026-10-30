@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.3
+
+- Layout view: a window moved to a background stage was shown in its old size (e.g. Chrome
+  still full width next to the new window). The window manager only resizes the windows of a
+  stage when it is shown, so the last capture still has the old shape. Thumbnails in the layout
+  view now fill their place and are cropped, so the stage looks like it will once it is shown.
+
 ## 1.4.2
 
 - **Reopened apps return to their stage:** when an app quits and opens again within two

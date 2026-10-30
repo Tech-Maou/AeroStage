@@ -446,7 +446,7 @@ struct StageLayout: View {
                         .fill(ink.opacity(0.08))
                     // Draw the most recently focused window (first in the list) last, i.e. on top.
                     ForEach(placed.reversed(), id: \.window.id) { item in
-                        WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 22 * iconScale)
+                        WindowThumbnail(window: item.window, image: images[item.window.windowId], badgeSize: 22 * iconScale, fill: true)
                             .frame(width: item.frame.width * scale, height: item.frame.height * scale)
                             .windowInteractions(item.window, actions: actions)
                             // Placed by layout, not by offset, so the hover and click area moves
@@ -506,17 +506,29 @@ struct WindowThumbnail: View {
     let window: AeroWindow
     let image: CGImage?
     var badgeSize: CGFloat = 36
+    /// Fill the frame and cut off the rest instead of fitting the image inside. For the layout
+    /// view: a window on a hidden stage keeps its old size until the stage is shown (the window
+    /// manager only resizes visible windows), so its last capture can have the wrong shape.
+    var fill = false
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 6, style: .continuous) }
+
+    @ViewBuilder
+    private func picture(_ image: CGImage) -> some View {
+        let picture = Image(decorative: image, scale: 1).resizable().interpolation(.high)
+        if fill {
+            // Top left stays visible: title bar and sidebar make the window recognizable.
+            Color.clear.overlay(alignment: .topLeading) { picture.scaledToFill() }
+        } else {
+            picture.aspectRatio(contentMode: .fit)
+        }
+    }
 
     var body: some View {
         let icon = IconCache.shared.icon(for: window)
         Group {
             if let image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
+                picture(image)
                     .clipShape(shape)
                     .overlay(shape.strokeBorder(ink.opacity(0.18), lineWidth: 0.5))
                     .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
