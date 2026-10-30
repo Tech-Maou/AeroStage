@@ -4,8 +4,9 @@
 
 - Fixed: after undocking from an external monitor (or docking), the layout view still drew
   the windows of background stages at their old positions, so they stuck out of the card.
-  Positions from the previous monitor are now discarded; those stages show their windows side
-  by side until they have been visible once.
+  AeroStage now keeps the positions per monitor: after undocking, background stages show their
+  windows side by side until they have been visible once, and back on the external display (or
+  after waking up, when macOS briefly removes and re-adds it) its positions are used again.
 
 ## 1.4.0
 
