@@ -60,6 +60,8 @@ the window manager, but clicking a stage or a window works just as well.
   plain AeroSpace a lightweight window-server check twice a second covers the visible stage.
 - **Customizable look:** background color, opacity and optional blur, title color and size,
   icon size.
+- **Reopened apps return to their stage:** when an app restarts (update, crash) within two
+  minutes, its new window goes back to the stage of the old one.
 - **Stages survive a window manager restart:** AeroStage remembers which window is on which
   stage. When AeroStage WM starts again (after a quit, a crash or an update), the windows go
   back to their stages. If it is not running, the sidebar says so and offers to start it.

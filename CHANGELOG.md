@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.2
+
+- **Reopened apps return to their stage:** when an app quits and opens again within two
+  minutes, for example after an automatic update or a crash, its new window goes back to the
+  stage of its old one (floating again if it was), and an emptied stage comes back at its old
+  place. Before, the window manager put it on the visible stage. A second window of a running
+  app, or a window opened again later, still opens where you are. Can be turned off under
+  Settings → General → Stages.
+- Fixed: after waking up, the layout view showed the windows of background stages side by
+  side instead of at their real positions. macOS briefly removes and re-adds the external
+  display on wake, and 1.4.1 then forgot all positions. AeroStage now keeps them per monitor:
+  after undocking the external display's positions are not used, and they are back as soon as
+  that display is.
+
 ## 1.4.1
 
 - Fixed: after undocking from an external monitor (or docking), the layout view still drew

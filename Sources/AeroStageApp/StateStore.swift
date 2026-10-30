@@ -38,6 +38,13 @@ final class StateStore: ObservableObject {
     private var restoredPID: Int32?
     private var isRestoring = false
     private var lastSnapshot: StageSnapshot?
+    /// Last stage (and its position) of every app whose windows all disappeared, with the process
+    /// they belonged to.
+    private var vanishedApps: [String: (workspace: String, position: Int?, floating: Bool, pid: pid_t, at: Date)] = [:]
+    /// Process of every app that has windows, as of the last refresh.
+    private var appPIDs: [String: pid_t] = [:]
+    /// A relaunch only counts this soon after the old window vanished (update, crash, restart).
+    private static let relaunchWindow: TimeInterval = 120
     private static let snapshotKey = "stageSnapshot"
 
     init(client: AeroSpaceClient, settings: AppSettings) {
@@ -108,7 +115,9 @@ final class StateStore: ObservableObject {
             async let visible = client.visibleWorkspaces()
             let result = try await (windows, monitors, visible)
             guard !Task.isCancelled else { return }
+            let previousWindows = self.windows
             (self.windows, self.monitors, self.visible) = result
+            if !isRestoring { followRelaunchedApps(previous: previousWindows) }
             isConnected = true
         } catch {
             guard !Task.isCancelled else { return }
@@ -132,6 +141,55 @@ final class StateStore: ObservableObject {
         if closed || activeWorkspace == emptied {
             leaveEmptiedStage(emptied, previousOrder: previousOrder)
         }
+    }
+
+    // MARK: Relaunched apps
+
+    /// An app that quit and came back (for example after an automatic update) opens a new window,
+    /// and the window manager puts it on the visible stage. Send it back to the stage of the app's
+    /// old window. Only for a new process: a second window of a running app, or a window opened
+    /// again after closing the last one, stays where the user opened it.
+    private func followRelaunchedApps(previous: [AeroWindow]) {
+        let now = Date()
+        vanishedApps = vanishedApps.filter { now.timeIntervalSince($0.value.at) < Self.relaunchWindow }
+        let currentIDs = Set(windows.map(\.windowId))
+        let previousIDs = Set(previous.map(\.windowId))
+        let appsWithWindows = Set(windows.compactMap(\.appBundleId))
+
+        // Apps whose windows are all gone: remember where they were and which process had them.
+        for window in previous where !currentIDs.contains(window.windowId) {
+            guard let app = window.appBundleId, !appsWithWindows.contains(app), let pid = appPIDs[app] else { continue }
+            vanishedApps[app] = (window.workspace, order.position(of: window.workspace), window.isFloating, pid, now)
+        }
+        appPIDs = appPIDs.filter { appsWithWindows.contains($0.key) }
+        for app in appsWithWindows where appPIDs[app] == nil {
+            appPIDs[app] = Self.pid(of: app)
+        }
+
+        guard settings.returnRelaunchedApps else { return }
+        for window in windows where !previousIDs.contains(window.windowId) {
+            guard let app = window.appBundleId, let old = vanishedApps[app],
+                  windows.filter({ $0.appBundleId == app }).count == 1,
+                  let pid = appPIDs[app], pid != old.pid,
+                  window.workspace != old.workspace
+            else { continue }
+            vanishedApps[app] = nil
+            let client = client
+            Task {
+                try? await client.moveWindow(window.windowId, to: old.workspace)
+                if old.floating { try? await client.setFloating(true, windowId: window.windowId) }
+                await refresh()
+                // A stage that was emptied in between comes back at its old place.
+                if let position = old.position, order.position(of: old.workspace) != position {
+                    moveStage(old.workspace, toPosition: position)
+                }
+            }
+        }
+    }
+
+    private static func pid(of bundleID: String) -> pid_t? {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .first { !$0.isTerminated }?.processIdentifier
     }
 
     // MARK: Stage assignment across window manager restarts

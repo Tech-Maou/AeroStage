@@ -221,10 +221,11 @@ struct SettingsView: View {
 
             Section {
                 LabeledContent("Stages on this monitor", value: "up to \(settings.maxStages)")
+                Toggle("Reopened apps return to their stage", isOn: $settings.returnRelaunchedApps)
             } header: {
                 Text("Stages")
             } footer: {
-                Text("The number follows the monitor's height, the sidebar width and the view, between 3 and 9. Stages are numbered by position without gaps; to reorder them, hold a card and drag it.")
+                Text("The number follows the monitor's height, the sidebar width and the view, between 3 and 9. Stages are numbered by position without gaps; to reorder them, hold a card and drag it. When an app quits and opens again within two minutes (for example after an update), its new window goes back to the stage of the old one.")
                     .foregroundStyle(.secondary)
             }
         }

@@ -24,14 +24,19 @@ final class ThumbnailService: ObservableObject {
     /// Window area of the sidebar monitor in global CG coordinates (without the sidebar).
     var canvas: CGRect = .zero {
         didSet {
-            // Positions are relative to the old monitor (e.g. after undocking from an external
-            // display). Windows of hidden stages would be drawn off the card; forget them, so
-            // those stages show their windows side by side until they are visible again.
-            guard canvas.size != oldValue.size, !oldValue.isEmpty else { return }
-            frames = [:]
+            // Positions are relative to the monitor they were seen on. Keep one set per monitor
+            // size: after undocking, hidden stages must not use the external display's positions
+            // (they would stick out of the card), but after waking up, when macOS briefly
+            // removes and re-adds the display, the positions of that display come back.
+            guard canvas.size != oldValue.size else { return }
+            if !oldValue.isEmpty { framesByCanvas[Self.key(oldValue.size)] = frames }
+            frames = framesByCanvas[Self.key(canvas.size)] ?? [:]
             pendingFrames.removeAll()
         }
     }
+    private var framesByCanvas: [String: [Int: CGRect]] = [:]
+
+    private static func key(_ size: CGSize) -> String { "\(Int(size.width))x\(Int(size.height))" }
 
     private(set) var lastCapture: Date?
     /// While true, new images are held back. Publishing redraws the sidebar, and SwiftUI then
@@ -58,6 +63,7 @@ final class ThumbnailService: ObservableObject {
         if frames.keys.contains(where: { !keep.contains($0) }) {
             frames = frames.filter { keep.contains($0.key) }
         }
+        framesByCanvas = framesByCanvas.mapValues { $0.filter { keep.contains($0.key) } }
         if changed || loop == nil { restart() }
     }
 

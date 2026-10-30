@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **1.4.0**. Sections 1–8 describe the current state; sections 9 and later record the
+Status: **1.4.2**. Sections 1–8 describe the current state; sections 9 and later record the
 findings and decisions per version.
 
 AeroStage is a native macOS companion app for the tiling window manager **AeroStage WM**, a
@@ -558,7 +558,19 @@ Each phase starts with a short alignment.
   With its menu bar item hidden, the Secure Input badge (shown while a password field has
   focus) was its only window, and SwiftUI quit the app when the badge closed.
 
-## 26. Open
+## 26. 1.4.1 / 1.4.2: monitors and relaunched apps
+
+- `ThumbnailService` keeps window positions per canvas size (`framesByCanvas`). 1.4.1 dropped
+  them on every canvas change, which also fired on wake, when macOS briefly removes and re-adds
+  the external display. `StageLayout` also ignores positions far outside the canvas.
+- Relaunched apps (`StateStore.followRelaunchedApps`): when all windows of an app disappear, its
+  workspace, stage position, floating state and process id are kept for 120 s. A new window of
+  that app, being its only window and owned by a different process, is moved back
+  (`move-node-to-workspace --window-id`), floated again if needed, and an emptied stage is put
+  back at its old position. Setting `returnRelaunchedApps`, on by default. The window manager
+  itself puts new windows on the focused workspace.
+
+## 27. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.
