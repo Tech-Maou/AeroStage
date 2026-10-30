@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **1.4.2**. Sections 1–8 describe the current state; sections 9 and later record the
+Status: **1.4.3**. Sections 1–8 describe the current state; sections 9 and later record the
 findings and decisions per version.
 
 AeroStage is a native macOS companion app for the tiling window manager **AeroStage WM**, a
