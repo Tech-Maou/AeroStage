@@ -570,7 +570,18 @@ Each phase starts with a short alignment.
   back at its old position. Setting `returnRelaunchedApps`, on by default. The window manager
   itself puts new windows on the focused workspace.
 
-## 27. Open
+## 27. 1.4.3: predicted layout of background stages
+
+- The window manager lays out a workspace only while it is visible; hidden windows keep their
+  size. `ThumbnailService.groups` records, with every remembered position, which windows were
+  on screen together. `StageLayout` uses the remembered positions only if the stage still has
+  exactly those windows (and they neither overlap nor lie outside the canvas). Otherwise it
+  predicts: floating windows at their remembered place, tiled ones by the root layout of the
+  first tiled window (`h_`/`v_` tiles: equal columns/rows in the remembered order; accordion:
+  full size, shifted by up to 30 pt, most recent in front). Nested containers are approximated.
+- Layout thumbnails fill their place and are cropped from the top left (`WindowThumbnail.fill`).
+
+## 28. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

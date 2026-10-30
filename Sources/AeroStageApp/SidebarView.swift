@@ -269,7 +269,7 @@ struct StageCard: View {
                 case .thumbnails:
                     WindowStack(windows: stage.windows, images: thumbnails.images, side: side, actions: actions)
                 case .layout:
-                    StageLayout(windows: stage.windows, images: thumbnails.images, frames: thumbnails.frames,
+                    StageLayout(windows: stage.windows, images: thumbnails.images, frames: thumbnails.frames, groups: thumbnails.groups,
                                 canvas: thumbnails.canvas.size, actions: actions)
                 case .icons:
                     WindowIconGrid(windows: stage.windows, actions: actions)
@@ -424,6 +424,7 @@ struct StageLayout: View {
     let windows: [AeroWindow]
     let images: [Int: CGImage]
     let frames: [Int: CGRect]
+    let groups: [Int: Set<Int>]
     let canvas: CGSize
     let actions: SidebarActions
 
@@ -467,24 +468,66 @@ struct StageLayout: View {
     /// are stale (missing or overlapping). Then the windows are split evenly side by side,
     /// like AeroSpace's default tiling will arrange them.
     private func placements() -> [(window: AeroWindow, frame: CGRect)] {
+        let ids = Set(windows.map(\.windowId))
         let known = windows.compactMap { window in frames[window.windowId].map { (window, $0) } }
         // Positions far outside the canvas belong to another monitor setup.
         let bounds = CGRect(origin: .zero, size: canvas).insetBy(dx: -canvas.width * 0.1, dy: -canvas.height * 0.1)
-        if known.count == windows.count, !overlaps(known.map(\.1)), known.allSatisfy({ bounds.contains($0.1) }) {
+        // Real positions only while the stage still has exactly the windows they were seen with.
+        let current = windows.allSatisfy { groups[$0.windowId] == ids }
+        if current, known.count == windows.count, !overlaps(known.map(\.1)), known.allSatisfy({ bounds.contains($0.1) }) {
             return known
         }
-        // Keep the remembered left-to-right order, windows without a position at the end.
-        let ordered = windows.sorted { a, b in
+        return predictedPlacements()
+    }
+
+    /// The arrangement the window manager will apply when the stage is shown next: windows of a
+    /// hidden stage keep their old size until then. Floating windows keep their own position;
+    /// the tiled ones share the canvas by the stage's root layout. Nested splits are approximated.
+    private func predictedPlacements() -> [(window: AeroWindow, frame: CGRect)] {
+        let area = CGRect(origin: .zero, size: canvas)
+        var result: [(window: AeroWindow, frame: CGRect)] = []
+        var tiled: [AeroWindow] = []
+        for window in windows {
+            if window.isFloating, let frame = frames[window.windowId] {
+                result.append((window, frame))
+            } else {
+                tiled.append(window)
+            }
+        }
+        guard !tiled.isEmpty else { return result }
+        let layout = tiled.first?.windowLayout ?? "h_tiles"
+        // Keep the remembered order along the split, windows without a position at the end.
+        let vertical = layout.hasPrefix("v_")
+        let ordered = tiled.sorted { a, b in
             switch (frames[a.windowId], frames[b.windowId]) {
-            case let (x?, y?): x.minX < y.minX
+            case let (x?, y?): vertical ? x.minY < y.minY : x.minX < y.minX
             case (_?, nil): true
             default: false
             }
         }
-        let width = canvas.width / CGFloat(ordered.count)
-        return ordered.enumerated().map { index, window in
-            (window, CGRect(x: CGFloat(index) * width, y: 0, width: width, height: canvas.height).insetBy(dx: 8, dy: 8))
+        let count = CGFloat(ordered.count)
+        let tiles: [(AeroWindow, CGRect)]
+        if layout.hasSuffix("accordion") {
+            // Full size, each one shifted a little, like the accordion's visible edges; the most
+            // recently focused window (first in the list) in front.
+            let step = min(30, (vertical ? area.height : area.width) * 0.05)
+            tiles = tiled.enumerated().map { index, window in
+                let offset = step * CGFloat(index)
+                let frame = vertical
+                    ? CGRect(x: 0, y: offset, width: area.width, height: area.height - step * (count - 1))
+                    : CGRect(x: offset, y: 0, width: area.width - step * (count - 1), height: area.height)
+                return (window, frame.insetBy(dx: 8, dy: 8))
+            }
+        } else {
+            tiles = ordered.enumerated().map { index, window in
+                let frame = vertical
+                    ? CGRect(x: 0, y: area.height / count * CGFloat(index), width: area.width, height: area.height / count)
+                    : CGRect(x: area.width / count * CGFloat(index), y: 0, width: area.width / count, height: area.height)
+                return (window, frame.insetBy(dx: 8, dy: 8))
+            }
         }
+        // Drawn back to front from the end of the list: floating windows on top of tiled ones.
+        return result + tiles.map { (window: $0.0, frame: $0.1) }
     }
 
     private func overlaps(_ rects: [CGRect]) -> Bool {

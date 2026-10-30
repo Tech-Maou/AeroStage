@@ -15,6 +15,9 @@ final class ThumbnailService: ObservableObject {
     /// Last real position per window, relative to `canvas`. Hidden windows (parked in the
     /// corner) keep the position they last had while visible.
     @Published private(set) var frames: [Int: CGRect] = [:]
+    /// For every window with a position: the windows that were on screen together with it. Once
+    /// a stage gains or loses a window while hidden, its remembered positions no longer apply.
+    @Published private(set) var groups: [Int: Set<Int>] = [:]
     @Published private(set) var access: Access = .unknown
 
     /// Target width of a thumbnail in pixels.
@@ -29,12 +32,13 @@ final class ThumbnailService: ObservableObject {
             // (they would stick out of the card), but after waking up, when macOS briefly
             // removes and re-adds the display, the positions of that display come back.
             guard canvas.size != oldValue.size else { return }
-            if !oldValue.isEmpty { framesByCanvas[Self.key(oldValue.size)] = frames }
-            frames = framesByCanvas[Self.key(canvas.size)] ?? [:]
+            if !oldValue.isEmpty { framesByCanvas[Self.key(oldValue.size)] = (frames, groups) }
+            (frames, groups) = framesByCanvas[Self.key(canvas.size)] ?? ([:], [:])
             pendingFrames.removeAll()
+            pendingGroups.removeAll()
         }
     }
-    private var framesByCanvas: [String: [Int: CGRect]] = [:]
+    private var framesByCanvas: [String: (frames: [Int: CGRect], groups: [Int: Set<Int>])] = [:]
 
     private static func key(_ size: CGSize) -> String { "\(Int(size.width))x\(Int(size.height))" }
 
@@ -46,6 +50,7 @@ final class ThumbnailService: ObservableObject {
     }
     private var pendingImages: [Int: CGImage] = [:]
     private var pendingFrames: [Int: CGRect] = [:]
+    private var pendingGroups: [Int: Set<Int>] = [:]
     private var windowIDs: [Int] = []
     private var loop: Task<Void, Never>?
     private var requestedAccess = false
@@ -63,7 +68,10 @@ final class ThumbnailService: ObservableObject {
         if frames.keys.contains(where: { !keep.contains($0) }) {
             frames = frames.filter { keep.contains($0.key) }
         }
-        framesByCanvas = framesByCanvas.mapValues { $0.filter { keep.contains($0.key) } }
+        if groups.keys.contains(where: { !keep.contains($0) }) {
+            groups = groups.filter { keep.contains($0.key) }
+        }
+        framesByCanvas = framesByCanvas.mapValues { ($0.frames.filter { keep.contains($0.key) }, $0.groups.filter { keep.contains($0.key) }) }
         if changed || loop == nil { restart() }
     }
 
@@ -140,6 +148,8 @@ final class ThumbnailService: ObservableObject {
         lastCapture = Date()
         pendingImages.merge(captured) { _, new in new }
         pendingFrames.merge(positions) { _, new in new }
+        let together = Set(positions.keys)
+        for id in together { pendingGroups[id] = together }
         if !isPaused { publishPending() }
     }
 
@@ -150,8 +160,11 @@ final class ThumbnailService: ObservableObject {
         }
         let changed = pendingFrames.filter { keep.contains($0.key) && frames[$0.key] != $0.value }
         if !changed.isEmpty { frames.merge(changed) { _, new in new } }
+        let changedGroups = pendingGroups.filter { keep.contains($0.key) && groups[$0.key] != $0.value }
+        if !changedGroups.isEmpty { groups.merge(changedGroups) { _, new in new } }
         pendingImages.removeAll()
         pendingFrames.removeAll()
+        pendingGroups.removeAll()
     }
 
     /// Position relative to `canvas`, but only if the window lies mostly inside it.
