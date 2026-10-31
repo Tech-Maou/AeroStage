@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.4
+
+- The **Layout** submenu of a stage card shows the current layout with a checkmark (Side by
+  Side or Accordion), like Tiling/Floating for a window.
+
 ## 1.4.3
 
 - Layout view: background stages show the arrangement they will have once shown. Before,

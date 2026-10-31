@@ -294,8 +294,11 @@ struct StageCard: View {
         .contextMenu {
             Button("Switch to Stage") { actions.focusWorkspace(stage.workspace) }
             Menu("Layout") {
-                Button("Side by Side") { actions.setStageLayout(stage.workspace, "tiles") }
-                Button("Accordion") { actions.setStageLayout(stage.workspace, "accordion") }
+                // Checkmarks show the current layout, like Tiling/Floating for a window.
+                Toggle("Side by Side", isOn: Binding(get: { stageLayout == "tiles" },
+                                                     set: { if $0 { actions.setStageLayout(stage.workspace, "tiles") } }))
+                Toggle("Accordion", isOn: Binding(get: { stageLayout == "accordion" },
+                                                  set: { if $0 { actions.setStageLayout(stage.workspace, "accordion") } }))
                 Divider()
                 Button("Reset Layout") { actions.resetStageLayout(stage.workspace) }
             }
@@ -312,6 +315,16 @@ struct StageCard: View {
         }
         .animation(.easeOut(duration: 0.12), value: stage.isFocused)
         .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+
+    /// "tiles" or "accordion" when all tiled windows of the stage agree, otherwise nil (mixed
+    /// nested containers, or only floating windows). The window manager reports e.g. "h_tiles".
+    private var stageLayout: String? {
+        let kinds = Set(stage.windows.filter { !$0.isFloating }.compactMap { window -> String? in
+            guard let layout = window.windowLayout else { return nil }
+            return layout.hasSuffix("accordion") ? "accordion" : layout.hasSuffix("tiles") ? "tiles" : nil
+        })
+        return kinds.count == 1 ? kinds.first : nil
     }
 
     /// "1. Firefox, Mail, Code": number and app names in order, without duplicates.
