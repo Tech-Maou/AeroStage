@@ -8,10 +8,11 @@ the strip of the macOS Stage Manager. You keep driving everything with the keybo
 the window manager, but clicking a stage or a window works just as well.
 
 > [!IMPORTANT]
-> AeroStage only runs reliably with **[AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM)**,
-> our fork of AeroSpace (see [Why AeroStage WM?](#why-aerostage-wm)). It still starts with the
-> original AeroSpace, but closed, minimized and moved windows are then only noticed by a
-> fallback check. `aerostage status` shows which mode is active.
+> AeroStage is made for **[AeroStage WM](https://github.com/Tech-Maou/AeroStage-WM)**, our
+> fork of AeroSpace (see [Why AeroStage WM?](#why-aerostage-wm)), which reports closed,
+> minimized and moved windows as events. It also runs with the original AeroSpace; such
+> windows are then noticed by a fallback check, and a few options are unavailable.
+> `aerostage status` shows which mode is active.
 
 > [!NOTE]
 > AeroStage and AeroStage WM are **unofficial**. They are not part of AeroSpace and not
@@ -92,13 +93,27 @@ Details are in the [specification](SPEC.md).
 
 ### Homebrew
 
+Recommended, with AeroStage WM:
+
+```bash
+brew install --cask tech-maou/tap/aerostage tech-maou/tap/aerostage-wm
+```
+
+This installs both apps and puts the `aerostage` and `aerostage-wm` commands on your `PATH`.
+If the original AeroSpace is installed, remove it first (see
+[Switching from AeroSpace](#switching-from-aerospace)).
+
+To keep the original AeroSpace instead, install AeroStage alone:
+
 ```bash
 brew install --cask tech-maou/tap/aerostage
 ```
 
-This installs AeroStage and, as a dependency, AeroStage WM, and puts the `aerostage` and
-`aerostage-wm` commands on your `PATH`. If the original AeroSpace is installed, remove it
-first (see [Switching from AeroSpace](#switching-from-aerospace)). The apps are not notarized
+Closed, minimized and moved windows are then noticed by a fallback check, and a few options
+(such as hiding the window manager's menu bar item) are unavailable. You can switch to
+AeroStage WM at any time.
+
+The apps are not notarized
 by Apple because the project does not use a paid Apple developer account, so the casks remove
 the quarantine attribute to let macOS launch them.
 
@@ -109,7 +124,7 @@ config carries over, and with `start-at-login = true` both would start at login.
 
 ```bash
 brew uninstall --cask aerospace   # keeps ~/.aerospace.toml
-brew install --cask tech-maou/tap/aerostage
+brew install --cask tech-maou/tap/aerostage-wm
 ```
 
 Homebrew refuses to install or upgrade AeroStage WM while the `aerospace` cask is installed.

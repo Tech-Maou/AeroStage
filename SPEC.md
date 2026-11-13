@@ -1,6 +1,6 @@
 # AeroStage – Specification
 
-Status: **1.4.3**. Sections 1–8 describe the current state; sections 9 and later record the
+Status: **1.4.4**. Sections 1–8 describe the current state; sections 9 and later record the
 findings and decisions per version.
 
 AeroStage is a native macOS companion app for the tiling window manager **AeroStage WM**, a
@@ -243,7 +243,8 @@ and the CLI at `Contents/Helpers/aerostage`.
   the released state (mirrored to GitHub), `dev` is where changes are made.
 - GitHub releases with a signed `.zip`, notes from `CHANGELOG.md`, made by `publish.sh`.
 - Homebrew tap `Tech-Maou/homebrew-tap`:
-  - `aerostage` with `depends_on cask: "tech-maou/tap/aerostage-wm"`
+  - `aerostage` without a window manager dependency (since 1.4.4); its caveats recommend
+    `aerostage-wm` and name the original AeroSpace as the alternative
   - `aerostage-wm` with `conflicts_with cask: "nikitabobko/tap/aerospace"`
   - both remove the quarantine attribute, link their CLI and quit the app before an upgrade
     (`uninstall quit:`); Homebrew reopens it afterwards
@@ -581,7 +582,19 @@ Each phase starts with a short alignment.
   full size, shifted by up to 30 pt, most recent in front). Nested containers are approximated.
 - Layout thumbnails fill their place and are cropped from the top left (`WindowThumbnail.fill`).
 
-## 28. Open
+## 28. 1.4.4: AeroStage without a required AeroStage WM
+
+- The `aerostage` cask no longer depends on `aerostage-wm`. Users who already run the original
+  AeroSpace can try AeroStage without replacing their window manager; the fork stays the
+  recommended setup and is installed with `brew install --cask … aerostage aerostage-wm`.
+  Reason: the fork as a hard requirement was the main objection in the AeroSpace
+  discussion (#2362). Existing installations keep `aerostage-wm`; Homebrew does not remove a
+  former dependency.
+- The app needed no change: it already prefers `aerostage-wm`, falls back to `aerospace`, and
+  only offers updates for components that are installed.
+- Stage card **Layout** submenu shows the current layout with a checkmark.
+
+## 29. Open
 
 1. How exactly does AeroSpace redistribute workspaces when the external monitor is
    disconnected or reconnected? `workspace-to-monitor-force-assignment` may be needed.

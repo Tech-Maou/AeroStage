@@ -2,6 +2,10 @@
 
 ## 1.4.4
 
+- **AeroStage WM is no longer installed automatically.** `brew install --cask
+  tech-maou/tap/aerostage` now installs AeroStage alone, so it can be tried with the original
+  AeroSpace. AeroStage WM stays recommended: `brew install --cask tech-maou/tap/aerostage
+  tech-maou/tap/aerostage-wm`. Existing installations are not affected.
 - The **Layout** submenu of a stage card shows the current layout with a checkmark (Side by
   Side or Accordion), like Tiling/Floating for a window.
 
